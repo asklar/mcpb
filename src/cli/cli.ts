@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 
 import { signDxtFile, unsignDxtFile, verifyDxtFile } from "../node/sign.js";
 import { cleanDxt, validateManifest } from "../node/validate.js";
+import { importServerJson } from "./import.js";
 import { initExtension } from "./init.js";
 import { packExtension } from "./pack.js";
 import { unpackExtension } from "./unpack.js";
@@ -55,6 +56,28 @@ program
     void (async () => {
       try {
         const success = await initExtension(directory, options?.yes);
+        process.exit(success ? 0 : 1);
+      } catch (error) {
+        console.error(
+          `ERROR: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+        process.exit(1);
+      }
+    })();
+  });
+
+// Import command
+program
+  .command("import <server-json>")
+  .description("Convert a server.json file to manifest.json")
+  .option("-o, --output <path>", "Output path for manifest.json")
+  .action((serverJsonPath: string, options: { output?: string }) => {
+    void (async () => {
+      try {
+        const success = await importServerJson({
+          serverJsonPath,
+          outputPath: options.output,
+        });
         process.exit(success ? 0 : 1);
       } catch (error) {
         console.error(
