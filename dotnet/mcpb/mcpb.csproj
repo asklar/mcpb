@@ -9,7 +9,7 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>mcpb</ToolCommandName>
         <PackageId>Mcpb.Cli</PackageId>
-        <Version>0.1.0</Version>
+        <Version>0.1.1</Version>
         <Authors>Alexander Sklar</Authors>
         <Description>CLI tool for building MCP Bundles (.mcpb)</Description>
         <PackageTags>MCP;MCPB;CLI;bundles;DXT;ModelContextProtocol</PackageTags>
@@ -17,6 +17,9 @@
         <PackageProjectUrl>https://github.com/asklar/mcpb</PackageProjectUrl>
         <RepositoryUrl>https://github.com/asklar/mcpb</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     </PropertyGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
