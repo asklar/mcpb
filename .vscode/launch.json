@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug TS Info Command",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/dist/cli/cli.js",
+      "args": ["info", "d:/test/test.mcpb"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**",
+        "node_modules/**"
+      ],
+      "sourceMaps": true,
+      "smartStep": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

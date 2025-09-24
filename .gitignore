@@ -125,3 +125,6 @@ _pkginfo.txt
 *.appx
 *.appxbundle
 *.appxupload
+
+# Generated C# source (instrumentation key)
+**/Generated/**

@@ -1,5 +1,7 @@
 using System.CommandLine;
 using System.IO.Compression;
+using Mcpb.Core;
+using Mcpb.Services;
 
 namespace Mcpb.Commands;
 
@@ -18,8 +20,10 @@ public static class UnpackCommand
             Directory.CreateDirectory(outDir);
             try
             {
+                try { var pt = ManifestProjectType.FromBundle(path); if (!string.IsNullOrEmpty(pt)) StaticTelemetryBridge.UpdateProjectType(pt); } catch { }
                 using var fs = File.OpenRead(path);
                 using var zip = new ZipArchive(fs, ZipArchiveMode.Read);
+                long totalBytes = 0;
                 foreach (var entry in zip.Entries)
                 {
                     var targetPath = Path.Combine(outDir, entry.FullName);
@@ -28,8 +32,10 @@ public static class UnpackCommand
                     if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
                     if (entry.FullName.EndsWith("/")) continue; // directory
                     entry.ExtractToFile(targetPath, overwrite: true);
+                    totalBytes += entry.Length;
                 }
                 Console.WriteLine($"Extension unpacked successfully to {outDir}");
+                try { TelemetryEnricher.Unpack(zip.Entries.Count, totalBytes); } catch { }
             }
             catch (Exception ex)
             {

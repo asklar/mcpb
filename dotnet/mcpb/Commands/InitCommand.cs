@@ -275,6 +275,8 @@ public static class InitCommand
 
             var json = JsonSerializer.Serialize(manifest, McpbJsonContext.Default.McpbManifest);
             await File.WriteAllTextAsync(manifestPath, json + "\n");
+            // Telemetry project type update (actual chosen type)
+            try { Mcpb.Services.StaticTelemetryBridge.UpdateProjectType(serverType); } catch { }
             Console.WriteLine($"\nCreated manifest.json at {manifestPath}");
             Console.WriteLine("\nNext steps:");
             Console.WriteLine("1. Ensure all your production dependencies are in this directory");

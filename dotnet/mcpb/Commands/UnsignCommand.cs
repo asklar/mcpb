@@ -1,4 +1,6 @@
 using System.CommandLine;
+using Mcpb.Core;
+using Mcpb.Services;
 
 namespace Mcpb.Commands;
 
@@ -14,10 +16,12 @@ public static class UnsignCommand
             if (!File.Exists(path)) { Console.Error.WriteLine($"ERROR: MCPB file not found: {file}"); return; }
             try
             {
+                try { var pt = ManifestProjectType.FromBundle(path); if (!string.IsNullOrEmpty(pt)) StaticTelemetryBridge.UpdateProjectType(pt); } catch { }
                 var bytes = File.ReadAllBytes(path);
                 var (original, sig) = SignatureHelpers.ExtractSignatureBlock(bytes);
                 Console.WriteLine($"Removing signature from {Path.GetFileName(path)}...");
-                if (sig == null)
+                var hadSig = sig != null;
+                if (!hadSig)
                 {
                     Console.WriteLine("WARNING: File not signed");
                 }
@@ -26,6 +30,7 @@ public static class UnsignCommand
                     File.WriteAllBytes(path, original);
                     Console.WriteLine("Signature removed");
                 }
+                try { TelemetryEnricher.Unsign(hadSig); } catch { }
             }
             catch (Exception ex)
             {

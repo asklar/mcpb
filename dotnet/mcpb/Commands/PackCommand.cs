@@ -5,6 +5,7 @@ using System.Text;
 using Mcpb.Core;
 using System.Text.Json;
 using Mcpb.Json;
+using Mcpb.Services;
 
 namespace Mcpb.Commands;
 
@@ -26,6 +27,13 @@ public static class PackCommand
             var manifestPath = Path.Combine(dir, "manifest.json");
             if (!File.Exists(manifestPath)) { Console.Error.WriteLine("ERROR: manifest.json not found"); return; }
             if (!ValidateManifestBasic(manifestPath)) { Console.Error.WriteLine("ERROR: Cannot pack invalid manifest"); return; }
+            // Update telemetry project type from manifest
+            try
+            {
+                var pt = ManifestProjectType.FromManifestFile(manifestPath);
+                if (!string.IsNullOrEmpty(pt)) Mcpb.Services.StaticTelemetryBridge.UpdateProjectType(pt);
+            }
+            catch { }
 
             var outPath = output != null ? Path.GetFullPath(output) : Path.Combine(Directory.GetCurrentDirectory(), new DirectoryInfo(dir).Name + ".mcpb");
             Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
@@ -97,6 +105,9 @@ public static class PackCommand
             Console.WriteLine($"total files: {fileEntries.Count}");
             Console.WriteLine($"ignored (.mcpbignore) files: {ignoredCount}");
             Console.WriteLine($"\nOutput: {outPath}");
+
+            // Telemetry enrichment
+            try { TelemetryEnricher.Pack(fileEntries.Count, ignoredCount, zipData.Length, totalUnpacked); } catch { }
         }, dirArg, outputArg);
         return cmd;
     }

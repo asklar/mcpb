@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Mcpb.Core;
+using Mcpb.Services;
 
 namespace Mcpb.Commands;
 
@@ -31,9 +33,10 @@ public static class SignCommand
             }
             try
             {
+                try { var pt = ManifestProjectType.FromBundle(path); if (!string.IsNullOrEmpty(pt)) StaticTelemetryBridge.UpdateProjectType(pt); } catch { }
                 Console.WriteLine($"Signing {Path.GetFileName(path)}...");
                 var original = File.ReadAllBytes(path);
-                var (content, _) = SignatureHelpers.ExtractSignatureBlock(original);
+                var (content, existingSig) = SignatureHelpers.ExtractSignatureBlock(original);
                 var pkcs7 = SignatureHelpers.CreateDetachedPkcs7(content, cert, key);
                 var signatureBlock = SignatureHelpers.CreateSignatureBlock(pkcs7);
                 File.WriteAllBytes(path, content.Concat(signatureBlock).ToArray());
@@ -45,6 +48,7 @@ public static class SignCommand
                     Console.WriteLine($"Signed by: {signerCert.Subject}");
                     Console.WriteLine($"Issuer: {signerCert.Issuer}");
                 }
+                try { TelemetryEnricher.Sign(selfSigned, existingSig != null); } catch { }
             }
             catch (Exception ex)
             {

@@ -21,7 +21,8 @@
     // Emit settings
     "declaration": true,
     "noEmit": false,
-    "inlineSources": false,
+    "sourceMap": true,
+    "inlineSources": true,
     "isolatedModules": false,
 
     // Other settings

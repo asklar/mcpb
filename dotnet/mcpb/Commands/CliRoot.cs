@@ -6,7 +6,16 @@ public static class CliRoot
 {
     public static RootCommand Build()
     {
-        var root = new RootCommand("Tools for building MCP Bundles (.mcpb)");
+        var description = """
+            Tools for building MCP Bundles (.mcpb)
+            
+            TELEMETRY NOTICE:
+            This tool collects anonymous usage telemetry to help improve the product.
+            No personal information is collected. To opt out, set the environment
+            variable MCPB_DISABLE_TELEMETRY=1 or MCPB_DISABLE_TELEMETRY=true.
+            """;
+            
+        var root = new RootCommand(description);
         root.AddCommand(InitCommand.Create());
         root.AddCommand(ValidateCommand.Create());
         root.AddCommand(PackCommand.Create());

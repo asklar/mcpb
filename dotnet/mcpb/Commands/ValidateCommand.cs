@@ -2,6 +2,7 @@ using System.CommandLine;
 using Mcpb.Core;
 using System.Text.Json;
 using Mcpb.Json;
+using Mcpb.Services;
 
 namespace Mcpb.Commands;
 
@@ -31,6 +32,13 @@ public static class ValidateCommand
                     Console.WriteLine($"DEBUG: Read manifest {path} length={json.Length}");
                 }
                 var issues = ManifestValidator.ValidateJson(json);
+                // Telemetry update from this manifest
+                try
+                {
+                    var pt = ManifestProjectType.FromManifestFile(path);
+                    if (!string.IsNullOrEmpty(pt)) Mcpb.Services.StaticTelemetryBridge.UpdateProjectType(pt);
+                }
+                catch { }
                 var errors = issues.Where(i => !(i.Path == "dxt_version" && i.Message.Contains("deprecated"))).ToList();
                 var deprecations = issues.Where(i => i.Path == "dxt_version" && i.Message.Contains("deprecated")).ToList();
                 if (errors.Count == 0)
@@ -38,6 +46,7 @@ public static class ValidateCommand
                     Console.WriteLine("Manifest is valid!");
                     foreach (var d in deprecations)
                         Console.WriteLine($"Warning: {d.Message}");
+                    try { TelemetryEnricher.Validate(0, deprecations.Count, deprecations.Count); } catch { }
                     Console.Out.Flush();
                     return; // success
                 }
@@ -49,6 +58,7 @@ public static class ValidateCommand
                 }
                 foreach (var d in deprecations)
                     Console.Error.WriteLine($"  - {d.Path}: {d.Message}");
+                try { TelemetryEnricher.Validate(errors.Count, 0, deprecations.Count); } catch { }
                 Environment.ExitCode = 1;
             }
             catch (Exception ex)

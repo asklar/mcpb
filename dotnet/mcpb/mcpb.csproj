@@ -21,14 +21,35 @@
         <DebugSymbols>false</DebugSymbols>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     </PropertyGroup>
+
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>mcpb.Tests</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
+    <!-- Generate instrumentation config source file if a key is provided -->
+    <PropertyGroup>
+        <!-- Allow env var fallback: InstrumentationKey or MCPB_INSTRUMENTATION_KEY -->
+        <InstrumentationKey Condition="'$(InstrumentationKey)'==''">$(MCPB_INSTRUMENTATION_KEY)</InstrumentationKey>
+    </PropertyGroup>
+    <Target Name="ManageInstrumentationConfig" BeforeTargets="CoreCompile">
+        <MakeDir Directories="Generated" />
+        <ItemGroup>
+            <InstrumentationConfigLines Include="namespace Mcpb.Generated {" />
+            <InstrumentationConfigLines Include="    internal static class InstrumentationConfig {" />
+            <InstrumentationConfigLines Include="        // generated at build - empty value disables telemetry" />
+            <InstrumentationConfigLines Include="        public const string InstrumentationKey = &quot;$(InstrumentationKey)&quot;%3B" />
+            <InstrumentationConfigLines Include="    }" />
+            <InstrumentationConfigLines Include="}" />
+        </ItemGroup>
+        <WriteLinesToFile File="Generated/InstrumentationConfig.cs" Lines="@(InstrumentationConfigLines)" Overwrite="true" />
+        <Message Text="InstrumentationConfig.cs generated (key length: $([System.String]::Copy('$(InstrumentationKey)').Length))" Importance="Low" />
+    </Target>
+
     <ItemGroup>
         <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
         <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.0" />
+        <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
     </ItemGroup>
     <ItemGroup>
         <Using Include="System.Text.Json" />

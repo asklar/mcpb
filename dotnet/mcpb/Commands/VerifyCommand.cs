@@ -1,5 +1,7 @@
 using System.CommandLine;
 using System.Security.Cryptography.X509Certificates;
+using Mcpb.Core;
+using Mcpb.Services;
 
 namespace Mcpb.Commands;
 
@@ -15,15 +17,18 @@ public static class VerifyCommand
             if (!File.Exists(path)) { Console.Error.WriteLine($"ERROR: MCPB file not found: {file}"); return; }
             try
             {
+                try { var pt = ManifestProjectType.FromBundle(path); if (!string.IsNullOrEmpty(pt)) StaticTelemetryBridge.UpdateProjectType(pt); } catch { }
                 var content = File.ReadAllBytes(path);
                 var (original, sig) = SignatureHelpers.ExtractSignatureBlock(content);
                 Console.WriteLine($"Verifying {Path.GetFileName(path)}...");
                 if (sig == null)
                 {
                     Console.Error.WriteLine("ERROR: Extension is not signed");
+                    try { TelemetryEnricher.Verify(false, false); } catch { }
                     return;
                 }
-                if (SignatureHelpers.Verify(original, sig, out var cert) && cert != null)
+                var valid = SignatureHelpers.Verify(original, sig, out var cert) && cert != null;
+                if (valid && cert != null)
                 {
                     Console.WriteLine("Signature is valid");
                     Console.WriteLine($"Signed by: {cert.Subject}");
@@ -35,6 +40,7 @@ public static class VerifyCommand
                 {
                     Console.Error.WriteLine("ERROR: Invalid signature");
                 }
+                try { TelemetryEnricher.Verify(valid, true); } catch { }
             }
             catch (Exception ex)
             {
