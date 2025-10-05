@@ -19,7 +19,7 @@ Options:
 
 Commands:
   init [directory]           Create a new MCPB extension manifest
-  validate <manifest>        Validate a MCPB manifest file
+  validate [manifest]        Validate a MCPB manifest file
   pack <directory> [output]  Pack a directory into a MCPB extension
   sign [options] <mcpb-file>  Sign a MCPB extension file
   verify <mcpb-file>          Verify the signature of a MCPB extension file
@@ -58,7 +58,7 @@ The command will prompt you for:
 
 After creating the manifest, it provides helpful next steps based on your server type.
 
-### `mcpb validate <path>`
+### `mcpb validate [path]`
 
 Validates a MCPB manifest file against the schema. You can provide either a direct path to a manifest.json file or a directory containing one.
 
@@ -69,6 +69,9 @@ mcpb validate manifest.json
 # Validate manifest in directory
 mcpb validate ./my-extension
 mcpb validate .
+
+# Validate using --dirname without specifying manifest.json explicitly
+mcpb validate --dirname ./my-extension
 ```
 
 #### Additional validation with `--dirname`
@@ -79,7 +82,7 @@ Passing `--dirname <directory>` performs deeper checks that require access to th
 - Launches the server (honoring `${__dirname}` tokens) and discovers tools & prompts using the same logic as `mcpb pack`.
 - Compares discovered capability names against the manifest and fails if they differ.
 
-Use `--update` alongside `--dirname` to rewrite the manifest in-place with the discovered tool/prompt lists (including `tools_generated` / `prompts_generated` flags). When rewriting, the CLI also copies over tool descriptions and prompt metadata (descriptions, declared arguments, and prompt text) returned by the server. Without `--update`, any mismatch causes the command to fail.
+When `--dirname` is supplied without an explicit manifest argument, the CLI automatically resolves `<directory>/manifest.json`. Use `--update` alongside `--dirname` to rewrite the manifest in-place with the discovered tool/prompt lists (including `tools_generated` / `prompts_generated` flags). When rewriting, the CLI also copies over tool descriptions and prompt metadata (descriptions, declared arguments, and prompt text) returned by the server. Without `--update`, any mismatch causes the command to fail.
 
 The discovery step respects the same environment overrides as `mcpb pack`:
 
