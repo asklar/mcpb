@@ -273,7 +273,7 @@ public static class InitCommand
                 Repository = repository
             };
 
-            var json = JsonSerializer.Serialize(manifest, McpbJsonContext.Default.McpbManifest);
+            var json = JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions);
             await File.WriteAllTextAsync(manifestPath, json + "\n");
             Console.WriteLine($"\nCreated manifest.json at {manifestPath}");
             Console.WriteLine("\nNext steps:");
