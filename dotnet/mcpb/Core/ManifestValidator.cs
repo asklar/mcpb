@@ -3,7 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace Mcpb.Core;
 
-public record ValidationIssue(string Path, string Message);
+public enum ValidationSeverity
+{
+    Error,
+    Warning
+}
+
+public record ValidationIssue(string Path, string Message, ValidationSeverity Severity = ValidationSeverity.Error);
 
 public static class ManifestValidator
 {
@@ -34,7 +40,7 @@ public static class ManifestValidator
             if (!effectiveManifest && !effectiveDxt)
                 issues.Add(new("manifest_version", "either manifest_version or deprecated dxt_version is required"));
             else if (!effectiveManifest && effectiveDxt)
-                issues.Add(new("dxt_version", "dxt_version is deprecated; use manifest_version"));
+                issues.Add(new("dxt_version", "dxt_version is deprecated; use manifest_version", ValidationSeverity.Warning));
             else if (effectiveManifest && effectiveDxt && !string.Equals(m.ManifestVersion, dxtValue, StringComparison.Ordinal))
                 issues.Add(new("dxt_version", "dxt_version value differs from manifest_version (manifest_version is canonical)"));
         }
@@ -45,7 +51,7 @@ public static class ManifestValidator
             if (!effectiveManifest && !dxtValPresent)
                 issues.Add(new("manifest_version", "either manifest_version or deprecated dxt_version is required"));
             else if (effectiveDxt)
-                issues.Add(new("dxt_version", "dxt_version is deprecated; use manifest_version"));
+                issues.Add(new("dxt_version", "dxt_version is deprecated; use manifest_version", ValidationSeverity.Warning));
         }
 
         // (Removed experimental dynamic required detection; explicit checks below suffice)
@@ -90,8 +96,15 @@ public static class ManifestValidator
         if (m.Prompts != null)
             for (int i = 0; i < m.Prompts.Count; i++)
             {
-                if (string.IsNullOrWhiteSpace(m.Prompts[i].Name)) issues.Add(new($"prompts[{i}].name", "prompt name required"));
-                if (string.IsNullOrWhiteSpace(m.Prompts[i].Text)) issues.Add(new($"prompts[{i}].text", "prompt text required"));
+                var prompt = m.Prompts[i];
+                if (string.IsNullOrWhiteSpace(prompt.Name)) issues.Add(new($"prompts[{i}].name", "prompt name required"));
+                if (string.IsNullOrWhiteSpace(prompt.Text))
+                {
+                    var message = Has(prompt.Name)
+                        ? $"prompt '{prompt.Name}' text missing from discovery; consider setting text manually in the manifest"
+                        : "prompt text missing from discovery; consider setting text manually in the manifest";
+                    issues.Add(new($"prompts[{i}].text", message, ValidationSeverity.Warning));
+                }
             }
 
         if (m.UserConfig != null)

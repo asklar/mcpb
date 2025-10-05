@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Mcpb.Core;
 using Xunit;
 
@@ -84,5 +85,15 @@ public class ManifestValidatorTests
         m.Version = "1.0"; // not full semver
         var issues = ManifestValidator.Validate(m);
         Assert.Contains(issues, i => i.Path == "version");
+    }
+
+    [Fact]
+    public void PromptMissingText_ProducesWarning()
+    {
+        var m = BaseManifest();
+        m.Prompts = new List<McpbManifestPrompt> { new() { Name = "dyn", Text = string.Empty } };
+        var issues = ManifestValidator.Validate(m);
+        var warning = Assert.Single(issues, i => i.Path == "prompts[0].text");
+        Assert.Equal(ValidationSeverity.Warning, warning.Severity);
     }
 }
