@@ -6,25 +6,25 @@ using Mcpb.Core;
 namespace Mcpb.Json;
 
 [JsonSerializable(typeof(McpbManifest))]
-[JsonSerializable(typeof(Dictionary<string,string>))]
+[JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 public partial class McpbJsonContext : JsonSerializerContext
 {
-	private static JsonSerializerOptions? _writeOptions;
+    private static JsonSerializerOptions? _writeOptions;
 
-	public static JsonSerializerOptions WriteOptions
-	{
-		get
-		{
-			if (_writeOptions != null) return _writeOptions;
+    public static JsonSerializerOptions WriteOptions
+    {
+        get
+        {
+            if (_writeOptions != null) return _writeOptions;
 
-			var options = new JsonSerializerOptions(Default.Options)
-			{
-				Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-			};
+            var options = new JsonSerializerOptions(Default.Options)
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
 
-			_writeOptions = options;
-			return options;
-		}
-	}
+            _writeOptions = options;
+            return options;
+        }
+    }
 }

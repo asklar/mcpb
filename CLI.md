@@ -117,10 +117,11 @@ If they differ:
 - `--update`: overwrite the `tools` and/or `prompts` list in `manifest.json` with the discovered sets (also sets `tools_generated: true` and/or `prompts_generated: true`) and persists the discovered descriptions plus prompt arguments/text when available.
 - `--no-discover`: skip dynamic discovery entirely (useful offline or when the server cannot be executed locally).
 
-Environment overrides for tests/CI: 
+Environment overrides for tests/CI:
+
 - `MCPB_TOOL_DISCOVERY_JSON` JSON array of tool names.
 - `MCPB_PROMPT_DISCOVERY_JSON` JSON array of prompt names.
-If either is set, the server process is not launched for that capability.
+  If either is set, the server process is not launched for that capability.
 
 #### Referenced File Validation
 

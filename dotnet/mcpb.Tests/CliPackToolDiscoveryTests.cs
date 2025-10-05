@@ -21,7 +21,8 @@ public class CliPackToolDiscoveryTests
         Directory.SetCurrentDirectory(workingDir);
         using var swOut = new StringWriter();
         using var swErr = new StringWriter();
-        try {
+        try
+        {
             var code = CommandRunner.Invoke(root, args, swOut, swErr);
             return (code, swOut.ToString(), swErr.ToString());
         }
@@ -30,11 +31,12 @@ public class CliPackToolDiscoveryTests
 
     private Mcpb.Core.McpbManifest MakeManifest(IEnumerable<string> tools)
     {
-        return new Mcpb.Core.McpbManifest {
+        return new Mcpb.Core.McpbManifest
+        {
             Name = "demo",
             Description = "desc",
             Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
-            Server = new Mcpb.Core.McpbManifestServer { Type="binary", EntryPoint="server/demo", McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" } },
+            Server = new Mcpb.Core.McpbManifestServer { Type = "binary", EntryPoint = "server/demo", McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" } },
             Tools = tools.Select(t => new Mcpb.Core.McpbManifestTool { Name = t }).ToList()
         };
     }
@@ -44,20 +46,22 @@ public class CliPackToolDiscoveryTests
     {
         var dir = CreateTempDir();
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
         // entry point expected: server/demo per manifest construction
-        var manifest = MakeManifest(new []{"a","b"});
+        var manifest = MakeManifest(new[] { "a", "b" });
         manifest.Tools![0].Description = "Tool A";
         manifest.Tools![1].Description = "Tool B";
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
-    Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
-        try {
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--no-discover=false");
             Assert.Equal(0, code);
             Assert.Contains("demo@", stdout);
-        } finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
     }
 
     [Fact]
@@ -65,14 +69,16 @@ public class CliPackToolDiscoveryTests
     {
         var dir = CreateTempDir();
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new []{"a"}), McpbJsonContext.WriteOptions));
-    Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
-        try {
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new[] { "a" }), McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir);
             Assert.NotEqual(0, code);
             Assert.Contains("Discovered capabilities differ", (stderr + stdout));
-        } finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
     }
 
     [Fact]
@@ -80,14 +86,16 @@ public class CliPackToolDiscoveryTests
     {
         var dir = CreateTempDir();
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new []{"a"}), McpbJsonContext.WriteOptions));
-    Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
-        try {
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new[] { "a" }), McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--force");
             Assert.Equal(0, code);
             Assert.Contains("Proceeding due to --force", stdout + stderr);
-        } finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
     }
 
     [Fact]
@@ -96,10 +104,11 @@ public class CliPackToolDiscoveryTests
         var dir = CreateTempDir();
         var manifestPath = Path.Combine(dir, "manifest.json");
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-    File.WriteAllText(manifestPath, JsonSerializer.Serialize(MakeManifest(new []{"a"}), McpbJsonContext.WriteOptions));
-    Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
-        try {
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(MakeManifest(new[] { "a" }), McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
             Assert.Equal(0, code);
             var updated = JsonSerializer.Deserialize<Mcpb.Core.McpbManifest>(File.ReadAllText(manifestPath), McpbJsonContext.Default.McpbManifest)!;
@@ -107,7 +116,8 @@ public class CliPackToolDiscoveryTests
             Assert.Equal("Tool B", added.Description);
             Assert.Equal(2, updated.Tools!.Count);
             Assert.Equal(false, updated.ToolsGenerated);
-        } finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null); }
     }
 
     [Fact]
@@ -119,7 +129,7 @@ public class CliPackToolDiscoveryTests
         File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
         var manifest = MakeManifest(new[] { "a" });
         manifest.Tools![0].Description = "legacy";
-    File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"fresh\"}]");
         try
         {
@@ -143,7 +153,7 @@ public class CliPackToolDiscoveryTests
         File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
         var manifest = MakeManifest(new[] { "a" });
         manifest.Tools![0].Description = null;
-    File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"fresh\"}]");
         try
         {

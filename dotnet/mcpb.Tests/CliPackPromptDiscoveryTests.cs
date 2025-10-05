@@ -21,7 +21,8 @@ public class CliPackPromptDiscoveryTests
         Directory.SetCurrentDirectory(workingDir);
         using var swOut = new StringWriter();
         using var swErr = new StringWriter();
-        try {
+        try
+        {
             var code = CommandRunner.Invoke(root, args, swOut, swErr);
             return (code, swOut.ToString(), swErr.ToString());
         }
@@ -30,11 +31,12 @@ public class CliPackPromptDiscoveryTests
 
     private Mcpb.Core.McpbManifest MakeManifest(string[] prompts)
     {
-        return new Mcpb.Core.McpbManifest {
+        return new Mcpb.Core.McpbManifest
+        {
             Name = "demo",
             Description = "desc",
             Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
-            Server = new Mcpb.Core.McpbManifestServer { Type="binary", EntryPoint="server/demo", McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" } },
+            Server = new Mcpb.Core.McpbManifestServer { Type = "binary", EntryPoint = "server/demo", McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" } },
             Prompts = prompts.Select(p => new Mcpb.Core.McpbManifestPrompt { Name = p, Text = "t" }).ToList()
         };
     }
@@ -44,14 +46,16 @@ public class CliPackPromptDiscoveryTests
     {
         var dir = CreateTempDir();
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new []{"p1"}), McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new[] { "p1" }), McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[\"p1\",\"p2\"]");
-        try {
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir);
             Assert.NotEqual(0, code);
             Assert.Contains("Prompt list mismatch", stdout + stderr);
-        } finally { Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null); }
     }
 
     [Fact]
@@ -60,16 +64,18 @@ public class CliPackPromptDiscoveryTests
         var dir = CreateTempDir();
         var manifestPath = Path.Combine(dir, "manifest.json");
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-    File.WriteAllText(manifestPath, JsonSerializer.Serialize(MakeManifest(new []{"p1"}), McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(MakeManifest(new[] { "p1" }), McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[\"p1\",\"p2\"]");
-        try {
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
             Assert.Equal(0, code);
             var updated = JsonSerializer.Deserialize<Mcpb.Core.McpbManifest>(File.ReadAllText(manifestPath), McpbJsonContext.Default.McpbManifest)!;
             Assert.Equal(2, updated.Prompts!.Count);
             Assert.Equal(false, updated.PromptsGenerated);
-        } finally { Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null); }
     }
 
     [Fact]
@@ -77,14 +83,16 @@ public class CliPackPromptDiscoveryTests
     {
         var dir = CreateTempDir();
         Directory.CreateDirectory(Path.Combine(dir, "server"));
-        File.WriteAllText(Path.Combine(dir, "server","demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new []{"p1"}), McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(MakeManifest(new[] { "p1" }), McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[\"p1\",\"p2\"]");
-        try {
+        try
+        {
             var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--force");
             Assert.Equal(0, code);
             Assert.Contains("Proceeding due to --force", stdout + stderr);
-        } finally { Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null); }
+        }
+        finally { Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null); }
     }
 
     [Fact]
