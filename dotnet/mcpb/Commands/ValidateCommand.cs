@@ -12,11 +12,12 @@ public static class ValidateCommand
 {
     public static Command Create()
     {
-        var manifestArg = new Argument<string>("manifest", description: "Path to manifest.json or its directory");
+        var manifestArg = new Argument<string?>("manifest", description: "Path to manifest.json or its directory");
+        manifestArg.Arity = ArgumentArity.ZeroOrOne;
         var dirnameOpt = new Option<string?>("--dirname", description: "Directory containing referenced files and server entry point");
         var updateOpt = new Option<bool>("--update", description: "Update manifest tools/prompts to match discovery results");
         var cmd = new Command("validate", "Validate an MCPB manifest file") { manifestArg, dirnameOpt, updateOpt };
-        cmd.SetHandler(async (string path, string? dirname, bool update) =>
+        cmd.SetHandler(async (string? path, string? dirname, bool update) =>
         {
             if (update && string.IsNullOrWhiteSpace(dirname))
             {
@@ -24,23 +25,37 @@ public static class ValidateCommand
                 Environment.ExitCode = 1;
                 return;
             }
-            if (Directory.Exists(path))
+            if (string.IsNullOrWhiteSpace(path))
             {
-                path = Path.Combine(path, "manifest.json");
+                if (!string.IsNullOrWhiteSpace(dirname))
+                {
+                    path = Path.Combine(dirname, "manifest.json");
+                }
+                else
+                {
+                    Console.Error.WriteLine("ERROR: Manifest path or --dirname must be specified.");
+                    Environment.ExitCode = 1;
+                    return;
+                }
             }
-            if (!File.Exists(path))
+            var manifestPath = path!;
+            if (Directory.Exists(manifestPath))
             {
-                Console.Error.WriteLine($"ERROR: File not found: {path}");
+                manifestPath = Path.Combine(manifestPath, "manifest.json");
+            }
+            if (!File.Exists(manifestPath))
+            {
+                Console.Error.WriteLine($"ERROR: File not found: {manifestPath}");
                 Environment.ExitCode = 1;
                 return;
             }
             string json;
             try
             {
-                json = File.ReadAllText(path);
+                json = File.ReadAllText(manifestPath);
                 if (Environment.GetEnvironmentVariable("MCPB_DEBUG_VALIDATE") == "1")
                 {
-                    Console.WriteLine($"DEBUG: Read manifest {path} length={json.Length}");
+                    Console.WriteLine($"DEBUG: Read manifest {manifestPath} length={json.Length}");
                 }
 
                 static void PrintWarnings(IEnumerable<ValidationIssue> warnings, bool toError)
@@ -186,7 +201,7 @@ public static class ValidateCommand
                             var updatedWarnings = updatedIssues.Where(i => i.Severity == ValidationSeverity.Warning).ToList();
                             var updatedManifest = JsonSerializer.Deserialize<McpbManifest>(updatedJson, McpbJsonContext.Default.McpbManifest)!;
 
-                            File.WriteAllText(path, updatedJson);
+                            File.WriteAllText(manifestPath, updatedJson);
 
                             if (updatedErrors.Count > 0)
                             {

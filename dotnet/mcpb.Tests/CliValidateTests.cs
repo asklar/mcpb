@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -46,6 +47,51 @@ public class CliValidateTests
         Assert.Equal(0, code);
         Assert.Contains("Manifest is valid!", stdout);
         Assert.True(string.IsNullOrWhiteSpace(stderr));
+    }
+
+    [Fact]
+    public void Validate_WithDirnameOnly_UsesDefaultManifest()
+    {
+        var dir = CreateTempDir();
+        var manifest = new Mcpb.Core.McpbManifest
+        {
+            Name = "ok",
+            Description = "desc",
+            Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
+            Server = new Mcpb.Core.McpbManifestServer
+            {
+                Type = "binary",
+                EntryPoint = "server/ok",
+                McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/ok" }
+            },
+            Tools = new List<Mcpb.Core.McpbManifestTool>
+            {
+                new() { Name = "dummy", Description = "fake" }
+            },
+            Prompts = new List<Mcpb.Core.McpbManifestPrompt>
+            {
+                new() { Name = "prompt1", Description = "desc", Text = "body" }
+            }
+        };
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "ok"), "binary");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"dummy\",\"description\":\"fake\"}]");
+        Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"prompt1\",\"description\":\"desc\",\"text\":\"body\"}]");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "validate", "--dirname", dir);
+            _output.WriteLine("STDOUT: " + stdout);
+            _output.WriteLine("STDERR: " + stderr);
+            Assert.Equal(0, code);
+            Assert.Contains("Manifest is valid!", stdout);
+            Assert.True(string.IsNullOrWhiteSpace(stderr));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null);
+            Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null);
+        }
     }
 
     [Fact]

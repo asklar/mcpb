@@ -23,7 +23,7 @@ dotnet tool install --global Mcpb.Cli --add-source ./bin/Release
 | Command                                                                                 | Description                      |
 | --------------------------------------------------------------------------------------- | -------------------------------- |
 | `mcpb init [directory] [--server-type node\|python\|binary\|auto] [--entry-point path]` | Create manifest.json             |
-| `mcpb validate <manifest\|directory>`                                                   | Validate manifest                |
+| `mcpb validate [manifest\|directory]`                                                   | Validate manifest                |
 | `mcpb pack [directory] [output]`                                                        | Create .mcpb archive             |
 | `mcpb unpack <file> [outputDir]`                                                        | Extract archive                  |
 | `mcpb sign <file> [--cert cert.pem --key key.pem --self-signed]`                        | Sign bundle                      |
