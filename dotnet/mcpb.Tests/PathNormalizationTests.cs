@@ -11,7 +11,7 @@ public class PathNormalizationTests
     [InlineData("subdir/nested\\script.py", "subdir")] // mixed separators
     public void NormalizePath_RewritesSeparators(string raw, string expectedFirstSegment)
     {
-    var norm = Mcpb.Commands.ManifestCommandHelpers.NormalizePathForPlatform(raw);
+        var norm = Mcpb.Commands.ManifestCommandHelpers.NormalizePathForPlatform(raw);
         var sep = Path.DirectorySeparatorChar;
         // Ensure we converted both kinds of slashes into the platform separator only
         if (sep == '/')
@@ -30,7 +30,7 @@ public class PathNormalizationTests
     public void NormalizePath_LeavesUrls()
     {
         var raw = "http://example.com/path/with/slash";
-    var norm = Mcpb.Commands.ManifestCommandHelpers.NormalizePathForPlatform(raw);
+        var norm = Mcpb.Commands.ManifestCommandHelpers.NormalizePathForPlatform(raw);
         Assert.Equal(raw, norm); // unchanged
     }
 
@@ -38,7 +38,7 @@ public class PathNormalizationTests
     public void NormalizePath_LeavesFlags()
     {
         var raw = "--flag=value";
-    var norm = Mcpb.Commands.ManifestCommandHelpers.NormalizePathForPlatform(raw);
+        var norm = Mcpb.Commands.ManifestCommandHelpers.NormalizePathForPlatform(raw);
         Assert.Equal(raw, norm);
     }
 }

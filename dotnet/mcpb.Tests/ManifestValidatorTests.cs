@@ -8,7 +8,7 @@ public class ManifestValidatorTests
 {
     private McpbManifest BaseManifest() => new()
     {
-    ManifestVersion = "0.2",
+        ManifestVersion = "0.2",
         Name = "test",
         Version = "1.0.0",
         Description = "desc",
@@ -53,8 +53,8 @@ public class ManifestValidatorTests
     {
         var m = BaseManifest();
         m.ManifestVersion = ""; // remove manifest_version
-        // set deprecated dxt_version via reflection (property exists)
-    m.GetType().GetProperty("DxtVersion")!.SetValue(m, "0.2");
+                                // set deprecated dxt_version via reflection (property exists)
+        m.GetType().GetProperty("DxtVersion")!.SetValue(m, "0.2");
         var issues = ManifestValidator.Validate(m);
         Assert.DoesNotContain(issues, i => i.Path == "manifest_version");
         Assert.Contains(issues, i => i.Path == "dxt_version" && i.Message.Contains("deprecated"));

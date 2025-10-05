@@ -207,7 +207,7 @@ public static class ValidateCommand
                             updatedManifestPrompts.Sort(StringComparer.Ordinal);
                             if (!updatedManifestTools.SequenceEqual(sortedDiscoveredTools) || !updatedManifestPrompts.SequenceEqual(sortedDiscoveredPrompts))
                             {
-                              Console.Error.WriteLine("ERROR: Updated manifest still differs from discovered capability names (updated file written).");
+                                Console.Error.WriteLine("ERROR: Updated manifest still differs from discovered capability names (updated file written).");
                                 PrintWarnings(updatedWarnings, toError: true);
                                 Environment.ExitCode = 1;
                                 return;

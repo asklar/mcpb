@@ -99,8 +99,8 @@ internal static class ManifestCommandHelpers
         Action<string>? logInfo,
         Action<string>? logWarning)
     {
-    var overrideTools = TryParseToolOverride("MCPB_TOOL_DISCOVERY_JSON");
-    var overridePrompts = TryParsePromptOverride("MCPB_PROMPT_DISCOVERY_JSON");
+        var overrideTools = TryParseToolOverride("MCPB_TOOL_DISCOVERY_JSON");
+        var overridePrompts = TryParsePromptOverride("MCPB_PROMPT_DISCOVERY_JSON");
         if (overrideTools != null || overridePrompts != null)
         {
             return new CapabilityDiscoveryResult(

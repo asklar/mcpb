@@ -29,7 +29,8 @@ public class CliValidateTests
         Directory.SetCurrentDirectory(workingDir);
         using var swOut = new StringWriter();
         using var swErr = new StringWriter();
-        try {
+        try
+        {
             var code = CommandRunner.Invoke(root, args, swOut, swErr);
             return (code, swOut.ToString(), swErr.ToString());
         }
@@ -39,8 +40,8 @@ public class CliValidateTests
     public void Validate_ValidManifest_Succeeds()
     {
         var dir = CreateTempDir();
-        var manifest = new Mcpb.Core.McpbManifest { Name = "ok", Description = "desc", Author = new Mcpb.Core.McpbManifestAuthor{ Name = "A"}, Server = new Mcpb.Core.McpbManifestServer{ Type="binary", EntryPoint="server/ok", McpConfig=new Mcpb.Core.McpServerConfigWithOverrides{ Command="${__dirname}/server/ok"}}};
-    File.WriteAllText(Path.Combine(dir,"manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        var manifest = new Mcpb.Core.McpbManifest { Name = "ok", Description = "desc", Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" }, Server = new Mcpb.Core.McpbManifestServer { Type = "binary", EntryPoint = "server/ok", McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/ok" } } };
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, stdout, stderr) = InvokeCli(dir, "validate", "manifest.json");
         Assert.Equal(0, code);
         Assert.Contains("Manifest is valid!", stdout);
@@ -59,7 +60,7 @@ public class CliValidateTests
             "\"author\":{\"name\":\"A\"}," +
             "\"server\":{\"type\":\"binary\",\"entry_point\":\"server/ok\",\"mcp_config\":{\"command\":\"${__dirname}/server/ok\"}}" +
             "}";
-        File.WriteAllText(Path.Combine(dir,"manifest.json"), json);
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), json);
         var (code2, stdout2, stderr2) = InvokeCli(dir, "validate", "manifest.json");
         Assert.NotEqual(0, code2);
         Assert.Contains("description is required", stderr2);
@@ -78,7 +79,7 @@ public class CliValidateTests
             "\"author\":{\"name\":\"A\"}," +
             "\"server\":{\"type\":\"binary\",\"entry_point\":\"server/ok\",\"mcp_config\":{\"command\":\"${__dirname}/server/ok\"}}" +
             "}";
-        File.WriteAllText(Path.Combine(dir,"manifest.json"), json);
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), json);
         var (code3, stdout3, stderr3) = InvokeCli(dir, "validate", "manifest.json");
         Assert.Equal(0, code3);
         Assert.Contains("Manifest is valid!", stdout3);
@@ -89,13 +90,15 @@ public class CliValidateTests
     public void Validate_WithDirnameMissingFiles_Fails()
     {
         var dir = CreateTempDir();
-        var manifest = new Mcpb.Core.McpbManifest {
+        var manifest = new Mcpb.Core.McpbManifest
+        {
             Name = "demo",
             Description = "desc",
             Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
             Icon = "icon.png",
-            Screenshots = new List<string>{"shots/s1.png"},
-            Server = new Mcpb.Core.McpbManifestServer {
+            Screenshots = new List<string> { "shots/s1.png" },
+            Server = new Mcpb.Core.McpbManifestServer
+            {
                 Type = "binary",
                 EntryPoint = "server/demo",
                 McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" }
@@ -104,7 +107,7 @@ public class CliValidateTests
         Directory.CreateDirectory(Path.Combine(dir, "server"));
         // Intentionally leave out icon to trigger failure
         File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
 
         var (code, stdout, stderr) = InvokeCli(dir, "validate", "manifest.json", "--dirname", dir);
         Assert.NotEqual(0, code);
@@ -115,23 +118,25 @@ public class CliValidateTests
     public void Validate_WithDirnameMismatchFailsWithoutUpdate()
     {
         var dir = CreateTempDir();
-        var manifest = new Mcpb.Core.McpbManifest {
+        var manifest = new Mcpb.Core.McpbManifest
+        {
             Name = "demo",
             Description = "desc",
             Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
-            Server = new Mcpb.Core.McpbManifestServer {
+            Server = new Mcpb.Core.McpbManifestServer
+            {
                 Type = "binary",
                 EntryPoint = "server/demo",
                 McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" }
             },
-            Tools = new List<Mcpb.Core.McpbManifestTool>{ new Mcpb.Core.McpbManifestTool { Name = "a" } },
-            Prompts = new List<Mcpb.Core.McpbManifestPrompt>{ new Mcpb.Core.McpbManifestPrompt { Name = "p1", Text = "existing" } }
+            Tools = new List<Mcpb.Core.McpbManifestTool> { new Mcpb.Core.McpbManifestTool { Name = "a" } },
+            Prompts = new List<Mcpb.Core.McpbManifestPrompt> { new Mcpb.Core.McpbManifestPrompt { Name = "p1", Text = "existing" } }
         };
         Directory.CreateDirectory(Path.Combine(dir, "server"));
         File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
-    Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
-    Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"p1\",\"description\":\"Prompt A\",\"arguments\":[\"topic\"],\"text\":\"Prompt A body\"},{\"name\":\"p2\",\"description\":\"Prompt B\",\"arguments\":[\"topic\",\"style\"],\"text\":\"Prompt B body\"}]");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
+        Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"p1\",\"description\":\"Prompt A\",\"arguments\":[\"topic\"],\"text\":\"Prompt A body\"},{\"name\":\"p2\",\"description\":\"Prompt B\",\"arguments\":[\"topic\",\"style\"],\"text\":\"Prompt B body\"}]");
         try
         {
             var (code, stdout, stderr) = InvokeCli(dir, "validate", "manifest.json", "--dirname", dir);
@@ -153,23 +158,25 @@ public class CliValidateTests
     public void Validate_WithDirnameUpdate_RewritesManifest()
     {
         var dir = CreateTempDir();
-        var manifest = new Mcpb.Core.McpbManifest {
+        var manifest = new Mcpb.Core.McpbManifest
+        {
             Name = "demo",
             Description = "desc",
             Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
-            Server = new Mcpb.Core.McpbManifestServer {
+            Server = new Mcpb.Core.McpbManifestServer
+            {
                 Type = "binary",
                 EntryPoint = "server/demo",
                 McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" }
             },
-            Tools = new List<Mcpb.Core.McpbManifestTool>{ new Mcpb.Core.McpbManifestTool { Name = "a" } },
-            Prompts = new List<Mcpb.Core.McpbManifestPrompt>{ new Mcpb.Core.McpbManifestPrompt { Name = "p1", Text = "existing" } }
+            Tools = new List<Mcpb.Core.McpbManifestTool> { new Mcpb.Core.McpbManifestTool { Name = "a" } },
+            Prompts = new List<Mcpb.Core.McpbManifestPrompt> { new Mcpb.Core.McpbManifestPrompt { Name = "p1", Text = "existing" } }
         };
         Directory.CreateDirectory(Path.Combine(dir, "server"));
         File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
-    Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
-    Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"p1\",\"description\":\"Prompt A\",\"arguments\":[\"topic\"],\"text\":\"Prompt A body\"},{\"name\":\"p2\",\"description\":\"Prompt B\",\"arguments\":[\"topic\",\"style\"],\"text\":\"Prompt B body\"}]");
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"Tool A\"},{\"name\":\"b\",\"description\":\"Tool B\"}]");
+        Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"p1\",\"description\":\"Prompt A\",\"arguments\":[\"topic\"],\"text\":\"Prompt A body\"},{\"name\":\"p2\",\"description\":\"Prompt B\",\"arguments\":[\"topic\",\"style\"],\"text\":\"Prompt B body\"}]");
         try
         {
             var (code, stdout, stderr) = InvokeCli(dir, "validate", "manifest.json", "--dirname", dir, "--update");
@@ -218,7 +225,7 @@ public class CliValidateTests
             Tools = new List<Mcpb.Core.McpbManifestTool> { new() { Name = "a", Description = "legacy" } },
             Prompts = new List<Mcpb.Core.McpbManifestPrompt> { new() { Name = "p1", Description = "old", Arguments = new List<string> { "topic" }, Text = "Old body" } }
         };
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"fresh\"}]");
         Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"p1\",\"description\":\"Prompt new\",\"arguments\":[\"topic\",\"style\"],\"text\":\"New body\"}]");
         try
@@ -255,7 +262,7 @@ public class CliValidateTests
             Tools = new List<Mcpb.Core.McpbManifestTool> { new() { Name = "a", Description = null } },
             Prompts = new List<Mcpb.Core.McpbManifestPrompt> { new() { Name = "p1", Description = null, Arguments = new List<string> { "topic" }, Text = "Old body" } }
         };
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"a\",\"description\":\"fresh\"}]");
         Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"p1\",\"description\":\"Prompt new\",\"arguments\":[\"topic\",\"style\"],\"text\":\"New body\"}]");
         try
@@ -403,17 +410,19 @@ public class CliValidateTests
     public void Validate_UpdateWithoutDirname_Fails()
     {
         var dir = CreateTempDir();
-        var manifest = new Mcpb.Core.McpbManifest {
+        var manifest = new Mcpb.Core.McpbManifest
+        {
             Name = "demo",
             Description = "desc",
             Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
-            Server = new Mcpb.Core.McpbManifestServer {
+            Server = new Mcpb.Core.McpbManifestServer
+            {
                 Type = "binary",
                 EntryPoint = "server/demo",
                 McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" }
             }
         };
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, stdout, stderr) = InvokeCli(dir, "validate", "manifest.json", "--update");
         Assert.NotEqual(0, code);
         Assert.Contains("requires --dirname", stdout + stderr, StringComparison.OrdinalIgnoreCase);

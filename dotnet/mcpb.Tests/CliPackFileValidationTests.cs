@@ -21,23 +21,26 @@ public class CliPackFileValidationTests
         Directory.SetCurrentDirectory(workingDir);
         using var swOut = new StringWriter();
         using var swErr = new StringWriter();
-        try {
+        try
+        {
             var code = CommandRunner.Invoke(root, args, swOut, swErr);
             return (code, swOut.ToString(), swErr.ToString());
         }
         finally { Directory.SetCurrentDirectory(prev); }
     }
 
-    private Mcpb.Core.McpbManifest BaseManifest() => new Mcpb.Core.McpbManifest {
+    private Mcpb.Core.McpbManifest BaseManifest() => new Mcpb.Core.McpbManifest
+    {
         Name = "demo",
         Description = "desc",
         Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
         Icon = "icon.png",
-        Screenshots = new List<string>{"shots/s1.png"},
-        Server = new Mcpb.Core.McpbManifestServer {
+        Screenshots = new List<string> { "shots/s1.png" },
+        Server = new Mcpb.Core.McpbManifestServer
+        {
             Type = "node",
             EntryPoint = "server/index.js",
-            McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "node", Args = new List<string>{"${__dirname}/server/index.js"} }
+            McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "node", Args = new List<string> { "${__dirname}/server/index.js" } }
         }
     };
 
@@ -45,11 +48,11 @@ public class CliPackFileValidationTests
     public void Pack_MissingIcon_Fails()
     {
         var dir = CreateTempDir();
-        File.WriteAllText(Path.Combine(dir, "server","index.js"), "// js");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
         Directory.CreateDirectory(Path.Combine(dir, "shots"));
-        File.WriteAllText(Path.Combine(dir, "shots","s1.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "shots", "s1.png"), "fake");
         var manifest = BaseManifest();
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
         Assert.NotEqual(0, code);
         Assert.Contains("Missing icon file", stderr);
@@ -61,9 +64,9 @@ public class CliPackFileValidationTests
         var dir = CreateTempDir();
         File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
         Directory.CreateDirectory(Path.Combine(dir, "shots"));
-        File.WriteAllText(Path.Combine(dir, "shots","s1.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "shots", "s1.png"), "fake");
         var manifest = BaseManifest();
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
         Assert.NotEqual(0, code);
         Assert.Contains("Missing entry_point file", stderr);
@@ -74,9 +77,9 @@ public class CliPackFileValidationTests
     {
         var dir = CreateTempDir();
         File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
-        File.WriteAllText(Path.Combine(dir, "server","index.js"), "// js");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
         var manifest = BaseManifest();
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
         Assert.NotEqual(0, code);
         Assert.Contains("Missing screenshot file", stderr);
@@ -87,13 +90,13 @@ public class CliPackFileValidationTests
     {
         var dir = CreateTempDir();
         File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
-        File.WriteAllText(Path.Combine(dir, "server","index.js"), "// js");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
         Directory.CreateDirectory(Path.Combine(dir, "shots"));
-        File.WriteAllText(Path.Combine(dir, "shots","s1.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "shots", "s1.png"), "fake");
         var manifest = BaseManifest();
         // Make command path-like to trigger validation
         manifest.Server.McpConfig.Command = "${__dirname}/server/missing.js";
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
         Assert.NotEqual(0, code);
         Assert.Contains("Missing server.command file", stderr);
@@ -104,12 +107,12 @@ public class CliPackFileValidationTests
     {
         var dir = CreateTempDir();
         File.WriteAllText(Path.Combine(dir, "icon.png"), "fakeicon");
-        File.WriteAllText(Path.Combine(dir, "server","index.js"), "// js");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
         Directory.CreateDirectory(Path.Combine(dir, "shots"));
-        File.WriteAllText(Path.Combine(dir, "shots","s1.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "shots", "s1.png"), "fake");
         var manifest = BaseManifest();
         // Ensure command not path-like (node) so validation doesn't require it to exist as file
-    File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
         Assert.Equal(0, code);
         Assert.Contains("demo@", stdout);

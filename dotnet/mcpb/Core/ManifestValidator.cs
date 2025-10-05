@@ -20,8 +20,8 @@ public static class ManifestValidator
 
         if (Environment.GetEnvironmentVariable("MCPB_DEBUG_VALIDATE") == "1")
         {
-            Console.WriteLine("DBG_VALIDATE:DescriptionPropertyValue=" + (m.Description==null?"<null>":m.Description));
-            Console.WriteLine("DBG_VALIDATE:RootProps=" + (rootProps==null?"<none>":string.Join(",", rootProps)));
+            Console.WriteLine("DBG_VALIDATE:DescriptionPropertyValue=" + (m.Description == null ? "<null>" : m.Description));
+            Console.WriteLine("DBG_VALIDATE:RootProps=" + (rootProps == null ? "<none>" : string.Join(",", rootProps)));
         }
 
         var dxtPropInfo = m.GetType().GetProperty("DxtVersion");
@@ -58,9 +58,9 @@ public static class ManifestValidator
 
         bool RootMissing(string p) => rootProps != null && !rootProps.Contains(p);
 
-    if (RootMissing("name") || !Has(m.Name)) issues.Add(new("name", "name is required"));
-    if (RootMissing("version") || !Has(m.Version)) issues.Add(new("version", "version is required"));
-    if (RootMissing("description") || !Has(m.Description)) issues.Add(new("description", "description is required"));
+        if (RootMissing("name") || !Has(m.Name)) issues.Add(new("name", "name is required"));
+        if (RootMissing("version") || !Has(m.Version)) issues.Add(new("version", "version is required"));
+        if (RootMissing("description") || !Has(m.Description)) issues.Add(new("description", "description is required"));
         if (m.Author == null) issues.Add(new("author", "author object is required"));
         else if (!Has(m.Author.Name)) issues.Add(new("author.name", "author.name is required"));
         if (RootMissing("server") || m.Server == null) issues.Add(new("server", "server is required"));
