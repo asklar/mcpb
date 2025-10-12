@@ -95,6 +95,13 @@ public class MetaFieldTests
             ""_meta"": {
                 ""com.microsoft.windows"": {
                     ""static_responses"": {
+                        ""initialize"": {
+                            ""protocolVersion"": ""2024-11-05"",
+                            ""serverInfo"": {
+                                ""name"": ""test"",
+                                ""version"": ""1.0.0""
+                            }
+                        },
                         ""tools/list"": {
                             ""tools"": [
                                 {
@@ -112,5 +119,33 @@ public class MetaFieldTests
         Assert.NotNull(manifest);
         Assert.NotNull(manifest.Meta);
         Assert.True(manifest.Meta.ContainsKey("com.microsoft.windows"));
+        
+        // Verify we can extract the Windows meta
+        var windowsMeta = GetWindowsMetaFromManifest(manifest);
+        Assert.NotNull(windowsMeta);
+        Assert.NotNull(windowsMeta.StaticResponses);
+    }
+    
+    private static McpbWindowsMeta? GetWindowsMetaFromManifest(McpbManifest manifest)
+    {
+        if (manifest.Meta == null || !manifest.Meta.TryGetValue("com.microsoft.windows", out var windowsMetaDict))
+        {
+            return null;
+        }
+        
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            var json = JsonSerializer.Serialize(windowsMetaDict, options);
+            return JsonSerializer.Deserialize<McpbWindowsMeta>(json, options);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

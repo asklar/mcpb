@@ -162,10 +162,21 @@ internal static class ManifestCommandHelpers
             
             var tools = await client.ListToolsAsync(null, cts.Token);
             
-            // Capture tools/list response - store the full tool objects as-is
+            // Capture tools/list response - serialize tools to a clean JSON structure
             try
             {
-                toolsListResponse = new { tools = tools.ToList() };
+                var toolsList = new List<object>();
+                foreach (var tool in tools)
+                {
+                    // Serialize each tool to JSON and back to get a clean object structure
+                    var toolJson = JsonSerializer.Serialize(tool.ProtocolTool);
+                    var toolObj = JsonSerializer.Deserialize<Dictionary<string, object>>(toolJson);
+                    if (toolObj != null)
+                    {
+                        toolsList.Add(toolObj);
+                    }
+                }
+                toolsListResponse = new { tools = toolsList };
             }
             catch (Exception ex)
             {

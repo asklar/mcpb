@@ -138,52 +138,26 @@ public static class PackCommand
                 }
             }
 
-            // Check static responses in _meta
-            if (discoveredInitResponse != null || discoveredToolsListResponse != null)
+            // Check static responses in _meta (always update when --update is used)
+            if (update && (discoveredInitResponse != null || discoveredToolsListResponse != null))
             {
                 // Get or create _meta["com.microsoft.windows"]
                 var windowsMeta = GetOrCreateWindowsMeta(manifest);
                 var staticResponses = windowsMeta.StaticResponses ?? new McpbStaticResponses();
                 
-                // Check for differences in static responses
-                bool staticResponseMismatch = false;
-                if (discoveredInitResponse != null && !AreStaticResponsesEqual(staticResponses.Initialize, discoveredInitResponse))
+                // Update static responses in _meta when --update flag is used
+                if (discoveredInitResponse != null)
                 {
-                    staticResponseMismatch = true;
-                    Console.WriteLine("Static initialize response differs from discovered response.");
+                    staticResponses.Initialize = discoveredInitResponse;
                 }
-                
                 if (discoveredToolsListResponse != null)
                 {
-                    var discoveredToolsListDict = discoveredToolsListResponse as dynamic;
-                    var expectedToolsList = new McpbStaticToolsListResponse { Tools = discoveredToolsListDict?.tools };
-                    if (!AreStaticResponsesEqual(staticResponses.ToolsList, expectedToolsList))
-                    {
-                        staticResponseMismatch = true;
-                        Console.WriteLine("Static tools/list response differs from discovered response.");
-                    }
+                    // Store the entire tools/list response object as-is
+                    staticResponses.ToolsList = discoveredToolsListResponse;
                 }
-                
-                if (staticResponseMismatch)
-                {
-                    mismatchOccurred = true;
-                }
-                
-                if (update && (discoveredInitResponse != null || discoveredToolsListResponse != null))
-                {
-                    // Update static responses in _meta
-                    if (discoveredInitResponse != null)
-                    {
-                        staticResponses.Initialize = discoveredInitResponse;
-                    }
-                    if (discoveredToolsListResponse != null)
-                    {
-                        var discoveredToolsListDict = discoveredToolsListResponse as dynamic;
-                        staticResponses.ToolsList = new McpbStaticToolsListResponse { Tools = discoveredToolsListDict?.tools };
-                    }
-                    windowsMeta.StaticResponses = staticResponses;
-                    SetWindowsMeta(manifest, windowsMeta);
-                }
+                windowsMeta.StaticResponses = staticResponses;
+                SetWindowsMeta(manifest, windowsMeta);
+                Console.WriteLine("Updated _meta static_responses to match discovered results.");
             }
 
             if (mismatchOccurred)
