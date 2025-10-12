@@ -74,6 +74,22 @@ public class McpbUserConfigOption
     [JsonPropertyName("max")] public double? Max { get; set; }
 }
 
+public class McpbStaticToolsListResponse
+{
+    [JsonPropertyName("tools")] public List<object>? Tools { get; set; }
+}
+
+public class McpbStaticResponses
+{
+    [JsonPropertyName("initialize")] public object? Initialize { get; set; }
+    [JsonPropertyName("tools/list")] public McpbStaticToolsListResponse? ToolsList { get; set; }
+}
+
+public class McpbWindowsMeta
+{
+    [JsonPropertyName("static_responses")] public McpbStaticResponses? StaticResponses { get; set; }
+}
+
 public class McpbManifest
 {
     [JsonPropertyName("$schema")] public string? Schema { get; set; }
@@ -102,6 +118,7 @@ public class McpbManifest
     [JsonPropertyName("privacy_policies")] public List<string>? PrivacyPolicies { get; set; }
     [JsonPropertyName("compatibility")] public McpbManifestCompatibility? Compatibility { get; set; }
     [JsonPropertyName("user_config")] public Dictionary<string, McpbUserConfigOption>? UserConfig { get; set; }
+    [JsonPropertyName("_meta")] public Dictionary<string, Dictionary<string, object>>? Meta { get; set; }
 }
 
 public static class ManifestDefaults
