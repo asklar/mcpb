@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - main
+      - user/asklar/dotnet
     paths:
       - 'dotnet/**'
       - 'examples/**'
@@ -47,6 +48,7 @@ jobs:
       
       # Step a) Run .NET tests
       - name: Run .NET Tests
+        shell: bash
         run: |
           cd dotnet
           dotnet restore
@@ -55,27 +57,32 @@ jobs:
       
       # Step b) Validate basic CLI functionality
       - name: Test CLI - Help Command
+        shell: bash
         run: |
           cd dotnet
           dotnet run --project mcpb/mcpb.csproj -- --help
       
       - name: Test CLI - Version Command
+        shell: bash
         run: |
           cd dotnet
           dotnet run --project mcpb/mcpb.csproj -- --version
       
       # Step c) Test with examples - hello-world-node
       - name: Setup hello-world-node Example
+        shell: bash
         run: |
           cd examples/hello-world-node
           npm install
       
       - name: Test CLI - Validate hello-world-node Manifest
+        shell: bash
         run: |
           cd dotnet
           dotnet run --project mcpb/mcpb.csproj -- validate ../examples/hello-world-node/manifest.json
       
       - name: Test CLI - Pack hello-world-node (with update and output)
+        shell: bash
         run: |
           cd examples/hello-world-node
           echo "=== Original Manifest ==="
@@ -105,16 +112,19 @@ jobs:
       
       # Test with file-system-node example
       - name: Setup file-system-node Example
+        shell: bash
         run: |
           cd examples/file-system-node
           npm install
       
       - name: Test CLI - Validate file-system-node Manifest
+        shell: bash
         run: |
           cd dotnet
           dotnet run --project mcpb/mcpb.csproj -- validate ../examples/file-system-node/manifest.json
       
       - name: Test CLI - Pack file-system-node (no update)
+        shell: bash
         run: |
           cd examples/file-system-node
           echo "=== Testing pack without --update ==="
