@@ -11,7 +11,7 @@ namespace Mcpb.Json;
 [JsonSerializable(typeof(Dictionary<string, Dictionary<string, object>>))]
 [JsonSerializable(typeof(McpbWindowsMeta))]
 [JsonSerializable(typeof(McpbStaticResponses))]
-[JsonSerializable(typeof(McpbStaticToolsListResponse))]
+[JsonSerializable(typeof(System.Text.Json.JsonElement))]
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 public partial class McpbJsonContext : JsonSerializerContext
 {
