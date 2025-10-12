@@ -40,12 +40,9 @@
   "tools": [
     {
       "name": "get_current_time",
-      "description": "Get the current computer time"
+      "description": "Get the current computer time in various formats"
     }
   ],
-  "tools_generated": false,
-  "prompts": [],
-  "prompts_generated": false,
   "keywords": [
     "reference",
     "example",
@@ -55,41 +52,29 @@
     "time"
   ],
   "license": "MIT",
-  "privacy_policies": [],
-  "compatibility": {
-    "claude_desktop": ">=0.10.0",
-    "platforms": [
-      "darwin",
-      "win32",
-      "linux"
-    ],
-    "runtimes": {
-      "node": ">=16.0.0"
-    }
-  },
   "user_config": {
     "api_key": {
       "type": "string",
       "title": "API Key",
       "description": "Your API key for authentication (example of sensitive string)",
-      "required": false,
-      "sensitive": true
+      "sensitive": true,
+      "required": false
     },
     "verbose_logging": {
       "type": "boolean",
       "title": "Verbose Logging",
       "description": "Enable detailed logging output",
-      "required": false,
-      "default": false
+      "default": false,
+      "required": false
     },
     "max_results": {
       "type": "number",
       "title": "Maximum Results",
       "description": "Maximum number of results to return",
-      "required": false,
       "default": 10,
       "min": 1,
-      "max": 100
+      "max": 100,
+      "required": false
     },
     "config_file": {
       "type": "file",
@@ -101,38 +86,23 @@
       "type": "directory",
       "title": "Workspace Directory",
       "description": "Directory to use as workspace",
-      "required": false,
-      "default": "${HOME}/Documents"
+      "default": "${HOME}/Documents",
+      "required": false
     },
     "debug_mode": {
       "type": "string",
       "title": "Debug Mode",
       "description": "Set debug level (example of non-sensitive string)",
-      "required": false,
-      "default": "info"
+      "default": "info",
+      "required": false
     }
   },
-  "_meta": {
-    "com.microsoft.windows": {
-      "static_responses": {
-        "initialize": null,
-        "tools/list": {
-          "tools": [
-            {
-              "name": "get_current_time",
-              "title": null,
-              "description": "Get the current computer time",
-              "inputSchema": {
-                "type": "object",
-                "properties": {}
-              },
-              "outputSchema": null,
-              "annotations": null,
-              "_meta": null
-            }
-          ]
-        }
-      }
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=16.0.0"
     }
-  }
+  },
+  "privacy_policies": []
 }
