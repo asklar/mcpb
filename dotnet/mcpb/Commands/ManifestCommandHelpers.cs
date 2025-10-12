@@ -157,24 +157,31 @@ internal static class ManifestCommandHelpers
             logInfo?.Invoke($"Discovering tools & prompts using: {command} {string.Join(' ', args)}");
             await using var client = await McpClient.CreateAsync(transport);
             
-            // Note: Initialize response capture is skipped for now as we don't have direct access
-            // to the raw initialize response through the MCP client API
+            // Capture initialize response using McpClient properties
+            try
+            {
+                initializeResponse = new
+                {
+                    protocolVersion = "2024-11-05", // Current MCP protocol version
+                    capabilities = client.ServerCapabilities,
+                    serverInfo = client.ServerInfo,
+                    instructions = client.ServerInstructions
+                };
+            }
+            catch (Exception ex)
+            {
+                logWarning?.Invoke($"Failed to capture initialize response: {ex.Message}");
+            }
             
             var tools = await client.ListToolsAsync(null, cts.Token);
             
-            // Capture tools/list response - serialize tools to a clean JSON structure
+            // Capture tools/list response using typed Tool objects
             try
             {
-                var toolsList = new List<object>();
+                var toolsList = new List<Tool>();
                 foreach (var tool in tools)
                 {
-                    // Serialize each tool to JSON and back to get a clean object structure
-                    var toolJson = JsonSerializer.Serialize(tool.ProtocolTool);
-                    var toolObj = JsonSerializer.Deserialize<Dictionary<string, object>>(toolJson);
-                    if (toolObj != null)
-                    {
-                        toolsList.Add(toolObj);
-                    }
+                    toolsList.Add(tool.ProtocolTool);
                 }
                 toolsListResponse = new { tools = toolsList };
             }
