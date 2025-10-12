@@ -55,6 +55,8 @@ public static class PackCommand
             // Attempt dynamic discovery unless opted out (tools & prompts)
             List<McpbManifestTool>? discoveredTools = null;
             List<McpbManifestPrompt>? discoveredPrompts = null;
+            object? discoveredInitResponse = null;
+            object? discoveredToolsListResponse = null;
             if (!noDiscover)
             {
                 try
@@ -66,6 +68,8 @@ public static class PackCommand
                         warning => Console.Error.WriteLine($"WARNING: {warning}"));
                     discoveredTools = result.Tools;
                     discoveredPrompts = result.Prompts;
+                    discoveredInitResponse = result.InitializeResponse;
+                    discoveredToolsListResponse = result.ToolsListResponse;
                 }
                 catch (Exception ex)
                 {
@@ -131,6 +135,54 @@ public static class PackCommand
                 foreach (var warning in promptWarnings)
                 {
                     Console.Error.WriteLine($"WARNING: {warning}");
+                }
+            }
+
+            // Check static responses in _meta
+            if (discoveredInitResponse != null || discoveredToolsListResponse != null)
+            {
+                // Get or create _meta["com.microsoft.windows"]
+                var windowsMeta = GetOrCreateWindowsMeta(manifest);
+                var staticResponses = windowsMeta.StaticResponses ?? new McpbStaticResponses();
+                
+                // Check for differences in static responses
+                bool staticResponseMismatch = false;
+                if (discoveredInitResponse != null && !AreStaticResponsesEqual(staticResponses.Initialize, discoveredInitResponse))
+                {
+                    staticResponseMismatch = true;
+                    Console.WriteLine("Static initialize response differs from discovered response.");
+                }
+                
+                if (discoveredToolsListResponse != null)
+                {
+                    var discoveredToolsListDict = discoveredToolsListResponse as dynamic;
+                    var expectedToolsList = new McpbStaticToolsListResponse { Tools = discoveredToolsListDict?.tools };
+                    if (!AreStaticResponsesEqual(staticResponses.ToolsList, expectedToolsList))
+                    {
+                        staticResponseMismatch = true;
+                        Console.WriteLine("Static tools/list response differs from discovered response.");
+                    }
+                }
+                
+                if (staticResponseMismatch)
+                {
+                    mismatchOccurred = true;
+                }
+                
+                if (update && (discoveredInitResponse != null || discoveredToolsListResponse != null))
+                {
+                    // Update static responses in _meta
+                    if (discoveredInitResponse != null)
+                    {
+                        staticResponses.Initialize = discoveredInitResponse;
+                    }
+                    if (discoveredToolsListResponse != null)
+                    {
+                        var discoveredToolsListDict = discoveredToolsListResponse as dynamic;
+                        staticResponses.ToolsList = new McpbStaticToolsListResponse { Tools = discoveredToolsListDict?.tools };
+                    }
+                    windowsMeta.StaticResponses = staticResponses;
+                    SetWindowsMeta(manifest, windowsMeta);
                 }
             }
 
@@ -304,5 +356,54 @@ public static class PackCommand
         return sanitized;
     }
     private static string RegexReplace(string input, string pattern, string replacement) => System.Text.RegularExpressions.Regex.Replace(input, pattern, replacement);
+
+    private static McpbWindowsMeta GetOrCreateWindowsMeta(McpbManifest manifest)
+    {
+        manifest.Meta ??= new Dictionary<string, Dictionary<string, object>>();
+        
+        if (!manifest.Meta.TryGetValue("com.microsoft.windows", out var windowsMetaDict))
+        {
+            return new McpbWindowsMeta();
+        }
+        
+        // Try to deserialize the dictionary to McpbWindowsMeta
+        try
+        {
+            var json = JsonSerializer.Serialize(windowsMetaDict);
+            return JsonSerializer.Deserialize<McpbWindowsMeta>(json) ?? new McpbWindowsMeta();
+        }
+        catch
+        {
+            return new McpbWindowsMeta();
+        }
+    }
+    
+    private static void SetWindowsMeta(McpbManifest manifest, McpbWindowsMeta windowsMeta)
+    {
+        manifest.Meta ??= new Dictionary<string, Dictionary<string, object>>();
+        
+        // Serialize to dictionary
+        var json = JsonSerializer.Serialize(windowsMeta);
+        var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
+        
+        manifest.Meta["com.microsoft.windows"] = dict;
+    }
+    
+    private static bool AreStaticResponsesEqual(object? a, object? b)
+    {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        
+        try
+        {
+            var jsonA = JsonSerializer.Serialize(a);
+            var jsonB = JsonSerializer.Serialize(b);
+            return jsonA == jsonB;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
 }

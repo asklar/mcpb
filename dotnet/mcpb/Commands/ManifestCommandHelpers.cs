@@ -14,7 +14,11 @@ namespace Mcpb.Commands;
 
 internal static class ManifestCommandHelpers
 {
-    internal record CapabilityDiscoveryResult(List<McpbManifestTool> Tools, List<McpbManifestPrompt> Prompts);
+    internal record CapabilityDiscoveryResult(
+        List<McpbManifestTool> Tools, 
+        List<McpbManifestPrompt> Prompts,
+        object? InitializeResponse,
+        object? ToolsListResponse);
 
     internal static List<string> ValidateReferencedFiles(McpbManifest manifest, string baseDir)
     {
@@ -104,8 +108,10 @@ internal static class ManifestCommandHelpers
         if (overrideTools != null || overridePrompts != null)
         {
             return new CapabilityDiscoveryResult(
-        overrideTools ?? new List<McpbManifestTool>(),
-        overridePrompts ?? new List<McpbManifestPrompt>());
+                overrideTools ?? new List<McpbManifestTool>(),
+                overridePrompts ?? new List<McpbManifestPrompt>(),
+                null,
+                null);
         }
 
         var cfg = manifest.Server?.McpConfig ?? throw new InvalidOperationException("Manifest server.mcp_config missing");
@@ -130,6 +136,8 @@ internal static class ManifestCommandHelpers
 
         var toolInfos = new List<McpbManifestTool>();
         var promptInfos = new List<McpbManifestPrompt>();
+        object? initializeResponse = null;
+        object? toolsListResponse = null;
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
@@ -148,7 +156,22 @@ internal static class ManifestCommandHelpers
             });
             logInfo?.Invoke($"Discovering tools & prompts using: {command} {string.Join(' ', args)}");
             await using var client = await McpClient.CreateAsync(transport);
+            
+            // Note: Initialize response capture is skipped for now as we don't have direct access
+            // to the raw initialize response through the MCP client API
+            
             var tools = await client.ListToolsAsync(null, cts.Token);
+            
+            // Capture tools/list response - store the full tool objects as-is
+            try
+            {
+                toolsListResponse = new { tools = tools.ToList() };
+            }
+            catch (Exception ex)
+            {
+                logWarning?.Invoke($"Failed to capture tools/list response: {ex.Message}");
+            }
+            
             foreach (var tool in tools)
             {
                 if (string.IsNullOrWhiteSpace(tool.Name)) continue;
@@ -204,7 +227,9 @@ internal static class ManifestCommandHelpers
 
         return new CapabilityDiscoveryResult(
             DeduplicateTools(toolInfos),
-            DeduplicatePrompts(promptInfos));
+            DeduplicatePrompts(promptInfos),
+            initializeResponse,
+            toolsListResponse);
     }
 
     internal static string NormalizePathForPlatform(string value)
