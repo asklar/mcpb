@@ -96,7 +96,7 @@ public class MetaFieldTests
                 ""com.microsoft.windows"": {
                     ""static_responses"": {
                         ""initialize"": {
-                            ""protocolVersion"": ""2024-11-05"",
+                            ""protocolVersion"": ""2025-06-18"",
                             ""serverInfo"": {
                                 ""name"": ""test"",
                                 ""version"": ""1.0.0""
@@ -106,7 +106,24 @@ public class MetaFieldTests
                             ""tools"": [
                                 {
                                     ""name"": ""tool1"",
-                                    ""description"": ""First tool""
+                                    ""description"": ""First tool"",
+                                    ""inputSchema"": {
+                                        ""type"": ""object"",
+                                        ""properties"": {
+                                            ""query"": {
+                                                ""type"": ""string"",
+                                                ""description"": ""Search query""
+                                            }
+                                        }
+                                    },
+                                    ""outputSchema"": {
+                                        ""type"": ""object"",
+                                        ""properties"": {
+                                            ""results"": {
+                                                ""type"": ""array""
+                                            }
+                                        }
+                                    }
                                 }
                             ]
                         }
@@ -124,6 +141,84 @@ public class MetaFieldTests
         var windowsMeta = GetWindowsMetaFromManifest(manifest);
         Assert.NotNull(windowsMeta);
         Assert.NotNull(windowsMeta.StaticResponses);
+        Assert.NotNull(windowsMeta.StaticResponses.Initialize);
+        Assert.NotNull(windowsMeta.StaticResponses.ToolsList);
+        Assert.NotNull(windowsMeta.StaticResponses.ToolsList.Tools);
+        Assert.Single(windowsMeta.StaticResponses.ToolsList.Tools);
+        
+        // Verify the tool has the expected structure with inputSchema and outputSchema
+        var toolJson = JsonSerializer.Serialize(windowsMeta.StaticResponses.ToolsList.Tools[0]);
+        Assert.Contains("\"inputSchema\"", toolJson);
+        Assert.Contains("\"outputSchema\"", toolJson);
+        Assert.Contains("\"query\"", toolJson);
+        Assert.Contains("\"results\"", toolJson);
+    }
+    
+    [Fact]
+    public void StaticResponses_ContainInputAndOutputSchemas()
+    {
+        // This test verifies that tool schemas include both inputSchema and outputSchema
+        var initResult = new McpbInitializeResult
+        {
+            ProtocolVersion = "2025-06-18",
+            Capabilities = new { tools = new { listChanged = (object?)null } },
+            ServerInfo = new { name = "test-server", version = "1.0.0" },
+            Instructions = null
+        };
+
+        var toolsListResult = new McpbToolsListResult
+        {
+            Tools = new List<object>
+            {
+                new
+                {
+                    name = "search_tool",
+                    description = "A search tool",
+                    inputSchema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            query = new { type = "string", description = "Search query" },
+                            maxResults = new { type = "number", description = "Max results" }
+                        },
+                        required = new[] { "query" }
+                    },
+                    outputSchema = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            results = new { type = "array" },
+                            count = new { type = "number" }
+                        }
+                    }
+                }
+            }
+        };
+
+        var staticResponses = new McpbStaticResponses
+        {
+            Initialize = initResult,
+            ToolsList = toolsListResult
+        };
+
+        // Serialize to verify structure
+        var json = JsonSerializer.Serialize(staticResponses, new JsonSerializerOptions { WriteIndented = true });
+        
+        // Output to test logs for CI verification
+        Console.WriteLine("=== Static Responses Structure ===");
+        Console.WriteLine(json);
+        Console.WriteLine("=== End Static Responses ===");
+
+        // Verify the JSON contains expected schemas
+        Assert.Contains("\"inputSchema\"", json);
+        Assert.Contains("\"outputSchema\"", json);
+        Assert.Contains("\"query\"", json);
+        Assert.Contains("\"maxResults\"", json);
+        Assert.Contains("\"results\"", json);
+        Assert.Contains("\"protocolVersion\"", json);
+        Assert.Contains("2025-06-18", json);
     }
     
     private static McpbWindowsMeta? GetWindowsMetaFromManifest(McpbManifest manifest)

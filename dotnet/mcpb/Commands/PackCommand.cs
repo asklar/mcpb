@@ -55,8 +55,8 @@ public static class PackCommand
             // Attempt dynamic discovery unless opted out (tools & prompts)
             List<McpbManifestTool>? discoveredTools = null;
             List<McpbManifestPrompt>? discoveredPrompts = null;
-            object? discoveredInitResponse = null;
-            object? discoveredToolsListResponse = null;
+            McpbInitializeResult? discoveredInitResponse = null;
+            McpbToolsListResult? discoveredToolsListResponse = null;
             if (!noDiscover)
             {
                 try
