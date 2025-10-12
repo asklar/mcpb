@@ -74,10 +74,23 @@ public class McpbUserConfigOption
     [JsonPropertyName("max")] public double? Max { get; set; }
 }
 
+public class McpbInitializeResult
+{
+    [JsonPropertyName("protocolVersion")] public string? ProtocolVersion { get; set; }
+    [JsonPropertyName("capabilities")] public object? Capabilities { get; set; }
+    [JsonPropertyName("serverInfo")] public object? ServerInfo { get; set; }
+    [JsonPropertyName("instructions")] public string? Instructions { get; set; }
+}
+
+public class McpbToolsListResult
+{
+    [JsonPropertyName("tools")] public List<object>? Tools { get; set; }
+}
+
 public class McpbStaticResponses
 {
-    [JsonPropertyName("initialize")] public object? Initialize { get; set; }
-    [JsonPropertyName("tools/list")] public object? ToolsList { get; set; }
+    [JsonPropertyName("initialize")] public McpbInitializeResult? Initialize { get; set; }
+    [JsonPropertyName("tools/list")] public McpbToolsListResult? ToolsList { get; set; }
 }
 
 public class McpbWindowsMeta

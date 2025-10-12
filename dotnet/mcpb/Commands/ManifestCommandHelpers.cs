@@ -17,8 +17,8 @@ internal static class ManifestCommandHelpers
     internal record CapabilityDiscoveryResult(
         List<McpbManifestTool> Tools, 
         List<McpbManifestPrompt> Prompts,
-        object? InitializeResponse,
-        object? ToolsListResponse);
+        McpbInitializeResult? InitializeResponse,
+        McpbToolsListResult? ToolsListResponse);
 
     internal static List<string> ValidateReferencedFiles(McpbManifest manifest, string baseDir)
     {
@@ -136,8 +136,8 @@ internal static class ManifestCommandHelpers
 
         var toolInfos = new List<McpbManifestTool>();
         var promptInfos = new List<McpbManifestPrompt>();
-        object? initializeResponse = null;
-        object? toolsListResponse = null;
+        McpbInitializeResult? initializeResponse = null;
+        McpbToolsListResult? toolsListResponse = null;
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
@@ -160,12 +160,12 @@ internal static class ManifestCommandHelpers
             // Capture initialize response using McpClient properties
             try
             {
-                initializeResponse = new
+                initializeResponse = new McpbInitializeResult
                 {
-                    protocolVersion = "2024-11-05", // Current MCP protocol version
-                    capabilities = client.ServerCapabilities,
-                    serverInfo = client.ServerInfo,
-                    instructions = client.ServerInstructions
+                    ProtocolVersion = client.NegotiatedProtocolVersion,
+                    Capabilities = client.ServerCapabilities,
+                    ServerInfo = client.ServerInfo,
+                    Instructions = client.ServerInstructions
                 };
             }
             catch (Exception ex)
@@ -178,12 +178,12 @@ internal static class ManifestCommandHelpers
             // Capture tools/list response using typed Tool objects
             try
             {
-                var toolsList = new List<Tool>();
+                var toolsList = new List<object>();
                 foreach (var tool in tools)
                 {
                     toolsList.Add(tool.ProtocolTool);
                 }
-                toolsListResponse = new { tools = toolsList };
+                toolsListResponse = new McpbToolsListResult { Tools = toolsList };
             }
             catch (Exception ex)
             {
