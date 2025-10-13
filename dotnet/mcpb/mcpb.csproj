@@ -9,7 +9,7 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>mcpb</ToolCommandName>
         <PackageId>Mcpb.Cli</PackageId>
-        <Version>0.2.0</Version>
+        <Version>0.3.0</Version>
         <Authors>Alexander Sklar</Authors>
         <Description>CLI tool for building MCP Bundles (.mcpb)</Description>
         <PackageTags>MCP;MCPB;CLI;bundles;DXT;ModelContextProtocol</PackageTags>
@@ -45,5 +45,6 @@
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
+
 
 </Project>
