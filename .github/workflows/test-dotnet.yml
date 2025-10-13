@@ -141,7 +141,7 @@ jobs:
           mkdir -p ../test-init
           cd ../test-init
           echo "=== Testing mcpb init ==="
-          dotnet run --project ../dotnet/mcpb/mcpb.csproj -- init --server-type node --entry-point server/index.js
+          dotnet run --project ../dotnet/mcpb/mcpb.csproj -- init --yes --server-type node --entry-point server/index.js
           echo ""
           echo "=== Generated Manifest ==="
           cat manifest.json
