@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Mcpb.Core;
+using Mcpb.Json;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
@@ -19,6 +20,58 @@ internal static class ManifestCommandHelpers
         List<McpbManifestPrompt> Prompts,
         McpbInitializeResult? InitializeResponse,
         McpbToolsListResult? ToolsListResponse);
+    
+    /// <summary>
+    /// Recursively filters out null properties from a JsonElement to match JsonIgnoreCondition.WhenWritingNull behavior
+    /// </summary>
+    private static object FilterNullProperties(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            var dict = new Dictionary<string, object>();
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.Value.ValueKind != JsonValueKind.Null)
+                {
+                    dict[property.Name] = FilterNullProperties(property.Value);
+                }
+            }
+            return dict;
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            var list = new List<object>();
+            foreach (var item in element.EnumerateArray())
+            {
+                list.Add(FilterNullProperties(item));
+            }
+            return list;
+        }
+        else if (element.ValueKind == JsonValueKind.String)
+        {
+            return element.GetString() ?? "";
+        }
+        else if (element.ValueKind == JsonValueKind.Number)
+        {
+            if (element.TryGetInt64(out var longValue))
+                return longValue;
+            return element.GetDouble();
+        }
+        else if (element.ValueKind == JsonValueKind.True)
+        {
+            return true;
+        }
+        else if (element.ValueKind == JsonValueKind.False)
+        {
+            return false;
+        }
+        else
+        {
+            // For other types, convert to JsonElement
+            var json = JsonSerializer.Serialize(element);
+            return JsonSerializer.Deserialize<JsonElement>(json);
+        }
+    }
 
     internal static List<string> ValidateReferencedFiles(McpbManifest manifest, string baseDir)
     {
@@ -158,14 +211,35 @@ internal static class ManifestCommandHelpers
             await using var client = await McpClient.CreateAsync(transport);
             
             // Capture initialize response using McpClient properties
+            // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
             {
+                // Serialize and filter capabilities
+                object? capabilities = null;
+                if (client.ServerCapabilities != null)
+                {
+                    var capJson = JsonSerializer.Serialize(client.ServerCapabilities);
+                    var capElement = JsonSerializer.Deserialize<JsonElement>(capJson);
+                    capabilities = FilterNullProperties(capElement);
+                }
+                
+                // Serialize and filter serverInfo
+                object? serverInfo = null;
+                if (client.ServerInfo != null)
+                {
+                    var infoJson = JsonSerializer.Serialize(client.ServerInfo);
+                    var infoElement = JsonSerializer.Deserialize<JsonElement>(infoJson);
+                    serverInfo = FilterNullProperties(infoElement);
+                }
+                
+                var instructions = string.IsNullOrWhiteSpace(client.ServerInstructions) ? null : client.ServerInstructions;
+                
                 initializeResponse = new McpbInitializeResult
                 {
                     ProtocolVersion = client.NegotiatedProtocolVersion,
-                    Capabilities = client.ServerCapabilities,
-                    ServerInfo = client.ServerInfo,
-                    Instructions = client.ServerInstructions
+                    Capabilities = capabilities,
+                    ServerInfo = serverInfo,
+                    Instructions = instructions
                 };
             }
             catch (Exception ex)
@@ -176,12 +250,19 @@ internal static class ManifestCommandHelpers
             var tools = await client.ListToolsAsync(null, cts.Token);
             
             // Capture tools/list response using typed Tool objects
+            // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
             {
                 var toolsList = new List<object>();
                 foreach (var tool in tools)
                 {
-                    toolsList.Add(tool.ProtocolTool);
+                    // Serialize the tool and parse to JsonElement
+                    var json = JsonSerializer.Serialize(tool.ProtocolTool);
+                    var element = JsonSerializer.Deserialize<JsonElement>(json);
+                    
+                    // Filter out null properties recursively
+                    var filtered = FilterNullProperties(element);
+                    toolsList.Add(filtered);
                 }
                 toolsListResponse = new McpbToolsListResult { Tools = toolsList };
             }

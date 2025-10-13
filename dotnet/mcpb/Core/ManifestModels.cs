@@ -89,7 +89,7 @@ public class McpbToolsListResult
 
 public class McpbStaticResponses
 {
-    [JsonPropertyName("initialize")] public McpbInitializeResult? Initialize { get; set; }
+    [JsonPropertyName("initialize")] public object? Initialize { get; set; }
     [JsonPropertyName("tools/list")] public McpbToolsListResult? ToolsList { get; set; }
 }
 
