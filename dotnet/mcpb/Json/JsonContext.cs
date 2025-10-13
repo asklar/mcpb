@@ -27,7 +27,8 @@ public partial class McpbJsonContext : JsonSerializerContext
 
             var options = new JsonSerializerOptions(Default.Options)
             {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
 
             _writeOptions = options;

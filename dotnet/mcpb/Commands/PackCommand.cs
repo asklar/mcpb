@@ -148,7 +148,18 @@ public static class PackCommand
                 // Update static responses in _meta when --update flag is used
                 if (discoveredInitResponse != null)
                 {
-                    staticResponses.Initialize = discoveredInitResponse;
+                    // Serialize to dictionary to have full control over what's included
+                    var initDict = new Dictionary<string, object>();
+                    if (discoveredInitResponse.ProtocolVersion != null)
+                        initDict["protocolVersion"] = discoveredInitResponse.ProtocolVersion;
+                    if (discoveredInitResponse.Capabilities != null)
+                        initDict["capabilities"] = discoveredInitResponse.Capabilities;
+                    if (discoveredInitResponse.ServerInfo != null)
+                        initDict["serverInfo"] = discoveredInitResponse.ServerInfo;
+                    if (!string.IsNullOrWhiteSpace(discoveredInitResponse.Instructions))
+                        initDict["instructions"] = discoveredInitResponse.Instructions;
+                    
+                    staticResponses.Initialize = initDict;
                 }
                 if (discoveredToolsListResponse != null)
                 {
