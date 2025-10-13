@@ -169,33 +169,82 @@ jobs:
           echo "=== Running mcpb pack --update to discover schemas ==="
           dotnet run --project ../../dotnet/mcpb/mcpb.csproj -- pack . /tmp/fs-test.mcpb --update || echo "Pack may have warnings"
           echo ""
-          echo "=== Verifying _meta was added ==="
-          if grep -q '"_meta"' manifest.json; then
-            echo "✓ _meta field found"
+          echo "=== FULL UPDATED MANIFEST ==="
+          cat manifest.json | jq .
+          echo ""
+          echo "=== Verifying _meta field exists ==="
+          if [ "$(cat manifest.json | jq -r '._meta | type')" = "object" ]; then
+            echo "✓ _meta field is present and is an object"
           else
-            echo "✗ _meta field NOT found"
+            echo "✗ _meta field NOT found or not an object"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying com.microsoft.windows in _meta ==="
+          if [ "$(cat manifest.json | jq -r '._meta["com.microsoft.windows"] | type')" = "object" ]; then
+            echo "✓ com.microsoft.windows field is present"
+          else
+            echo "✗ com.microsoft.windows field NOT found"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying static_responses in com.microsoft.windows ==="
+          if [ "$(cat manifest.json | jq -r '._meta["com.microsoft.windows"].static_responses | type')" = "object" ]; then
+            echo "✓ static_responses field is present"
+          else
+            echo "✗ static_responses field NOT found"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying protocolVersion in initialize response ==="
+          PROTOCOL_VERSION=$(cat manifest.json | jq -r '._meta["com.microsoft.windows"].static_responses.initialize.protocolVersion')
+          if [ "$PROTOCOL_VERSION" != "null" ] && [ -n "$PROTOCOL_VERSION" ]; then
+            echo "✓ protocolVersion found: $PROTOCOL_VERSION"
+          else
+            echo "✗ protocolVersion NOT found"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying tools/list has tools array ==="
+          TOOLS_COUNT=$(cat manifest.json | jq -r '._meta["com.microsoft.windows"].static_responses["tools/list"].tools | length')
+          if [ "$TOOLS_COUNT" -gt 0 ]; then
+            echo "✓ tools/list contains $TOOLS_COUNT tools"
+          else
+            echo "✗ tools/list does not contain any tools"
             mv manifest.json.backup manifest.json
             exit 1
           fi
           echo ""
           echo "=== Verifying inputSchema for read_file tool ==="
-          if grep -A 30 '"name": "read_file"' manifest.json | grep -q '"inputSchema"'; then
+          READ_FILE_SCHEMA=$(cat manifest.json | jq '._meta["com.microsoft.windows"].static_responses["tools/list"].tools[] | select(.name == "read_file") | .inputSchema')
+          if [ "$READ_FILE_SCHEMA" != "null" ] && [ -n "$READ_FILE_SCHEMA" ]; then
             echo "✓ inputSchema found for read_file"
-            echo ""
-            echo "=== read_file tool with schema ==="
-            grep -B 2 -A 35 '"name": "read_file"' manifest.json | head -40
+            echo "$READ_FILE_SCHEMA" | jq .
           else
             echo "✗ inputSchema NOT found for read_file"
             mv manifest.json.backup manifest.json
             exit 1
           fi
           echo ""
+          echo "=== Verifying inputSchema has required 'path' property for read_file ==="
+          HAS_PATH=$(cat manifest.json | jq -r '._meta["com.microsoft.windows"].static_responses["tools/list"].tools[] | select(.name == "read_file") | .inputSchema.properties.path | type')
+          if [ "$HAS_PATH" = "object" ]; then
+            echo "✓ read_file inputSchema has 'path' property"
+          else
+            echo "✗ read_file inputSchema missing 'path' property"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
           echo "=== Verifying inputSchema for write_file tool ==="
-          if grep -A 30 '"name": "write_file"' manifest.json | grep -q '"inputSchema"'; then
+          WRITE_FILE_SCHEMA=$(cat manifest.json | jq '._meta["com.microsoft.windows"].static_responses["tools/list"].tools[] | select(.name == "write_file") | .inputSchema')
+          if [ "$WRITE_FILE_SCHEMA" != "null" ] && [ -n "$WRITE_FILE_SCHEMA" ]; then
             echo "✓ inputSchema found for write_file"
-            echo ""
-            echo "=== write_file tool with schema ==="
-            grep -B 2 -A 35 '"name": "write_file"' manifest.json | head -40
+            echo "$WRITE_FILE_SCHEMA" | jq .
           else
             echo "✗ inputSchema NOT found for write_file"
             mv manifest.json.backup manifest.json
