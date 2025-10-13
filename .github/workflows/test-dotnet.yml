@@ -155,23 +155,55 @@ jobs:
           echo "=== Manifest (should be unchanged) ==="
           cat manifest.json
       
-      - name: Test CLI - Verify file-system-node has rich tool schemas
+      - name: Test CLI - Update file-system-node with schema discovery
         shell: bash
         run: |
           cd examples/file-system-node
-          echo "=== File-system-node example has rich tool definitions ==="
-          echo "=== Showing manifest tools (these would get inputSchemas captured with --update) ==="
-          cat manifest.json | python3 -m json.tool | grep -A 3 '"tools"' | head -30
+          echo "=== File-system-node example requires allowed_directories argument ==="
+          echo "=== Temporarily modifying manifest to include test directory ==="
+          cp manifest.json manifest.json.backup
+          TEST_DIR="$(cd .. && pwd)"
+          echo "Using test directory: $TEST_DIR"
+          jq --arg dir "$TEST_DIR" '.server.mcp_config.args = ["${__dirname}/server/index.js", $dir]' manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
           echo ""
-          echo "=== Available tools in file-system-node: ==="
-          cat manifest.json | python3 -m json.tool | grep '"name"' | head -15
+          echo "=== Running mcpb pack --update to discover schemas ==="
+          dotnet run --project ../../dotnet/mcpb/mcpb.csproj -- pack . /tmp/fs-test.mcpb --update || echo "Pack may have warnings"
           echo ""
-          echo "Note: This example demonstrates tools with complex inputSchemas:"
-          echo "  - read_file: requires 'path' parameter"
-          echo "  - write_file: requires 'path' and 'content' parameters"
-          echo "  - list_directory: requires 'path' parameter"
-          echo "These schemas would be captured in _meta.static_responses.tools/list"
-          echo "when running with --update (requires allowed_directories user_config)"
+          echo "=== Verifying _meta was added ==="
+          if grep -q '"_meta"' manifest.json; then
+            echo "✓ _meta field found"
+          else
+            echo "✗ _meta field NOT found"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying inputSchema for read_file tool ==="
+          if grep -A 30 '"name": "read_file"' manifest.json | grep -q '"inputSchema"'; then
+            echo "✓ inputSchema found for read_file"
+            echo ""
+            echo "=== read_file tool with schema ==="
+            grep -B 2 -A 35 '"name": "read_file"' manifest.json | head -40
+          else
+            echo "✗ inputSchema NOT found for read_file"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying inputSchema for write_file tool ==="
+          if grep -A 30 '"name": "write_file"' manifest.json | grep -q '"inputSchema"'; then
+            echo "✓ inputSchema found for write_file"
+            echo ""
+            echo "=== write_file tool with schema ==="
+            grep -B 2 -A 35 '"name": "write_file"' manifest.json | head -40
+          else
+            echo "✗ inputSchema NOT found for write_file"
+            mv manifest.json.backup manifest.json
+            exit 1
+          fi
+          echo ""
+          echo "=== Restoring original manifest ==="
+          mv manifest.json.backup manifest.json
       
       # Test init command
       - name: Test CLI - Init Command
