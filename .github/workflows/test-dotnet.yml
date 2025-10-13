@@ -109,6 +109,28 @@ jobs:
             echo "✗ static_responses NOT found in manifest"
             exit 1
           fi
+          echo ""
+          echo "=== Verifying inputSchema is present in tools/list ==="
+          if grep -q '"inputSchema"' manifest.json; then
+            echo "✓ inputSchema found in manifest"
+            echo ""
+            echo "=== Extracting tool schema from _meta ==="
+            cat manifest.json | grep -A 50 '"tools/list"' | head -50
+          else
+            echo "✗ inputSchema NOT found in manifest"
+            exit 1
+          fi
+          echo ""
+          echo "=== Verifying initialize response with protocolVersion ==="
+          if grep -q '"protocolVersion"' manifest.json; then
+            echo "✓ protocolVersion found"
+            echo ""
+            echo "=== Initialize response ==="
+            cat manifest.json | grep -A 20 '"initialize"' | head -20
+          else
+            echo "✗ protocolVersion NOT found"
+            exit 1
+          fi
       
       # Test with file-system-node example
       - name: Setup file-system-node Example
@@ -132,6 +154,24 @@ jobs:
           echo ""
           echo "=== Manifest (should be unchanged) ==="
           cat manifest.json
+      
+      - name: Test CLI - Verify file-system-node has rich tool schemas
+        shell: bash
+        run: |
+          cd examples/file-system-node
+          echo "=== File-system-node example has rich tool definitions ==="
+          echo "=== Showing manifest tools (these would get inputSchemas captured with --update) ==="
+          cat manifest.json | python3 -m json.tool | grep -A 3 '"tools"' | head -30
+          echo ""
+          echo "=== Available tools in file-system-node: ==="
+          cat manifest.json | python3 -m json.tool | grep '"name"' | head -15
+          echo ""
+          echo "Note: This example demonstrates tools with complex inputSchemas:"
+          echo "  - read_file: requires 'path' parameter"
+          echo "  - write_file: requires 'path' and 'content' parameters"
+          echo "  - list_directory: requires 'path' parameter"
+          echo "These schemas would be captured in _meta.static_responses.tools/list"
+          echo "when running with --update (requires allowed_directories user_config)"
       
       # Test init command
       - name: Test CLI - Init Command
@@ -164,6 +204,6 @@ jobs:
           rm -f hello-world-test.mcpb || true
           cd ../file-system-node
           git checkout manifest.json || true
-          rm -f file-system-test.mcpb || true
+          rm -f file-system-test.mcpb file-system-schema-test.mcpb || true
           cd ../../
           rm -rf test-init || true
