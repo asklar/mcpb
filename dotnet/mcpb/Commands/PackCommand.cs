@@ -138,37 +138,13 @@ public static class PackCommand
                 }
             }
 
-            // Check static responses in _meta (always update when --update is used)
-            if (update && (discoveredInitResponse != null || discoveredToolsListResponse != null))
+            bool metaUpdated = false;
+            if (update)
             {
-                // Get or create _meta["com.microsoft.windows"]
-                var windowsMeta = GetOrCreateWindowsMeta(manifest);
-                var staticResponses = windowsMeta.StaticResponses ?? new McpbStaticResponses();
-                
-                // Update static responses in _meta when --update flag is used
-                if (discoveredInitResponse != null)
-                {
-                    // Serialize to dictionary to have full control over what's included
-                    var initDict = new Dictionary<string, object>();
-                    if (discoveredInitResponse.ProtocolVersion != null)
-                        initDict["protocolVersion"] = discoveredInitResponse.ProtocolVersion;
-                    if (discoveredInitResponse.Capabilities != null)
-                        initDict["capabilities"] = discoveredInitResponse.Capabilities;
-                    if (discoveredInitResponse.ServerInfo != null)
-                        initDict["serverInfo"] = discoveredInitResponse.ServerInfo;
-                    if (!string.IsNullOrWhiteSpace(discoveredInitResponse.Instructions))
-                        initDict["instructions"] = discoveredInitResponse.Instructions;
-                    
-                    staticResponses.Initialize = initDict;
-                }
-                if (discoveredToolsListResponse != null)
-                {
-                    // Store the entire tools/list response object as-is
-                    staticResponses.ToolsList = discoveredToolsListResponse;
-                }
-                windowsMeta.StaticResponses = staticResponses;
-                SetWindowsMeta(manifest, windowsMeta);
-                Console.WriteLine("Updated _meta static_responses to match discovered results.");
+                metaUpdated = ManifestCommandHelpers.ApplyWindowsMetaStaticResponses(
+                    manifest,
+                    discoveredInitResponse,
+                    discoveredToolsListResponse);
             }
 
             if (mismatchOccurred)
@@ -193,6 +169,10 @@ public static class PackCommand
                     }
                     File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
                     Console.WriteLine("Updated manifest.json capabilities to match discovered results.");
+                    if (metaUpdated)
+                    {
+                        Console.WriteLine("Updated manifest.json _meta static_responses to match discovered results.");
+                    }
                 }
                 else if (!force)
                 {
@@ -204,6 +184,11 @@ public static class PackCommand
                 {
                     Console.WriteLine("Proceeding due to --force despite capability mismatches.");
                 }
+            }
+            else if (metaUpdated && update)
+            {
+                File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+                Console.WriteLine("Updated manifest.json _meta static_responses to match discovered results.");
             }
 
             // Header
@@ -341,54 +326,5 @@ public static class PackCommand
         return sanitized;
     }
     private static string RegexReplace(string input, string pattern, string replacement) => System.Text.RegularExpressions.Regex.Replace(input, pattern, replacement);
-
-    private static McpbWindowsMeta GetOrCreateWindowsMeta(McpbManifest manifest)
-    {
-        manifest.Meta ??= new Dictionary<string, Dictionary<string, object>>();
-        
-        if (!manifest.Meta.TryGetValue("com.microsoft.windows", out var windowsMetaDict))
-        {
-            return new McpbWindowsMeta();
-        }
-        
-        // Try to deserialize the dictionary to McpbWindowsMeta
-        try
-        {
-            var json = JsonSerializer.Serialize(windowsMetaDict);
-            return JsonSerializer.Deserialize<McpbWindowsMeta>(json) ?? new McpbWindowsMeta();
-        }
-        catch
-        {
-            return new McpbWindowsMeta();
-        }
-    }
-    
-    private static void SetWindowsMeta(McpbManifest manifest, McpbWindowsMeta windowsMeta)
-    {
-        manifest.Meta ??= new Dictionary<string, Dictionary<string, object>>();
-        
-        // Serialize to dictionary
-        var json = JsonSerializer.Serialize(windowsMeta);
-        var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
-        
-        manifest.Meta["com.microsoft.windows"] = dict;
-    }
-    
-    private static bool AreStaticResponsesEqual(object? a, object? b)
-    {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
-        
-        try
-        {
-            var jsonA = JsonSerializer.Serialize(a);
-            var jsonB = JsonSerializer.Serialize(b);
-            return jsonA == jsonB;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 
 }

@@ -115,6 +115,8 @@ public static class ValidateCommand
 
                     var discoveredTools = discovery.Tools;
                     var discoveredPrompts = discovery.Prompts;
+                    var discoveredInitResponse = discovery.InitializeResponse;
+                    var discoveredToolsListResponse = discovery.ToolsListResponse;
 
                     var manifestTools = manifest.Tools?.Select(t => t.Name).ToList() ?? new List<string>();
                     var manifestPrompts = manifest.Prompts?.Select(p => p.Name).ToList() ?? new List<string>();
@@ -174,78 +176,97 @@ public static class ValidateCommand
                         Console.Error.WriteLine($"WARNING: {warning}");
                     }
 
-                    if (mismatchOccurred)
+                    bool toolUpdatesApplied = false;
+                    bool promptUpdatesApplied = false;
+                    bool metaUpdated = false;
+
+                    if (update)
                     {
-                        if (update)
+                        metaUpdated = ManifestCommandHelpers.ApplyWindowsMetaStaticResponses(
+                            manifest,
+                            discoveredInitResponse,
+                            discoveredToolsListResponse);
+
+                        if (toolMismatch || toolMetadataMismatch)
                         {
-                            if (toolMismatch || toolMetadataMismatch)
-                            {
-                                manifest.Tools = discoveredTools
-                                    .Select(t => new McpbManifestTool
-                                    {
-                                        Name = t.Name,
-                                        Description = t.Description
-                                    })
-                                    .ToList();
-                                manifest.ToolsGenerated ??= false;
-                            }
-                            if (promptMismatch || promptMetadataMismatch)
-                            {
-                                manifest.Prompts = ManifestCommandHelpers.MergePromptMetadata(manifest.Prompts, discoveredPrompts);
-                                manifest.PromptsGenerated ??= false;
-                            }
-
-                            var updatedJson = JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions);
-                            var updatedIssues = ManifestValidator.ValidateJson(updatedJson);
-                            var updatedErrors = updatedIssues.Where(i => i.Severity == ValidationSeverity.Error).ToList();
-                            var updatedWarnings = updatedIssues.Where(i => i.Severity == ValidationSeverity.Warning).ToList();
-                            var updatedManifest = JsonSerializer.Deserialize<McpbManifest>(updatedJson, McpbJsonContext.Default.McpbManifest)!;
-
-                            File.WriteAllText(manifestPath, updatedJson);
-
-                            if (updatedErrors.Count > 0)
-                            {
-                                Console.Error.WriteLine("ERROR: Updated manifest validation failed (updated file written):\n");
-                                foreach (var issue in updatedErrors)
+                            manifest.Tools = discoveredTools
+                                .Select(t => new McpbManifestTool
                                 {
-                                    var pfx = string.IsNullOrEmpty(issue.Path) ? string.Empty : issue.Path + ": ";
-                                    Console.Error.WriteLine($"  - {pfx}{issue.Message}");
-                                }
-                                PrintWarnings(updatedWarnings, toError: true);
-                                Environment.ExitCode = 1;
-                                return;
-                            }
-
-                            var updatedManifestTools = updatedManifest.Tools?.Select(t => t.Name).ToList() ?? new List<string>();
-                            var updatedManifestPrompts = updatedManifest.Prompts?.Select(p => p.Name).ToList() ?? new List<string>();
-                            updatedManifestTools.Sort(StringComparer.Ordinal);
-                            updatedManifestPrompts.Sort(StringComparer.Ordinal);
-                            if (!updatedManifestTools.SequenceEqual(sortedDiscoveredTools) || !updatedManifestPrompts.SequenceEqual(sortedDiscoveredPrompts))
-                            {
-                                Console.Error.WriteLine("ERROR: Updated manifest still differs from discovered capability names (updated file written).");
-                                PrintWarnings(updatedWarnings, toError: true);
-                                Environment.ExitCode = 1;
-                                return;
-                            }
-
-                            var remainingToolDiffs = ManifestCommandHelpers.GetToolMetadataDifferences(updatedManifest.Tools, discoveredTools);
-                            var remainingPromptDiffs = ManifestCommandHelpers.GetPromptMetadataDifferences(updatedManifest.Prompts, discoveredPrompts);
-                            if (remainingToolDiffs.Count > 0 || remainingPromptDiffs.Count > 0)
-                            {
-                                Console.Error.WriteLine("ERROR: Updated manifest metadata still differs from discovered results (updated file written).");
-                                PrintWarnings(updatedWarnings, toError: true);
-                                Environment.ExitCode = 1;
-                                return;
-                            }
-
-                            Console.WriteLine("Updated manifest.json capabilities to match discovered results.");
-                            manifest = updatedManifest;
-                            currentWarnings = new List<ValidationIssue>(updatedWarnings);
+                                    Name = t.Name,
+                                    Description = t.Description
+                                })
+                                .ToList();
+                            manifest.ToolsGenerated ??= false;
+                            toolUpdatesApplied = true;
                         }
-                        else
+                        if (promptMismatch || promptMetadataMismatch)
                         {
-                            additionalErrors.Add("ERROR: Discovered capabilities differ from manifest (names or metadata). Use --update to rewrite manifest.");
+                            manifest.Prompts = ManifestCommandHelpers.MergePromptMetadata(manifest.Prompts, discoveredPrompts);
+                            manifest.PromptsGenerated ??= false;
+                            promptUpdatesApplied = true;
                         }
+                    }
+
+                    if (mismatchOccurred && !update)
+                    {
+                        additionalErrors.Add("ERROR: Discovered capabilities differ from manifest (names or metadata). Use --update to rewrite manifest.");
+                    }
+                    else if (update && (toolUpdatesApplied || promptUpdatesApplied || metaUpdated))
+                    {
+                        var updatedJson = JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions);
+                        var updatedIssues = ManifestValidator.ValidateJson(updatedJson);
+                        var updatedErrors = updatedIssues.Where(i => i.Severity == ValidationSeverity.Error).ToList();
+                        var updatedWarnings = updatedIssues.Where(i => i.Severity == ValidationSeverity.Warning).ToList();
+                        var updatedManifest = JsonSerializer.Deserialize<McpbManifest>(updatedJson, McpbJsonContext.Default.McpbManifest)!;
+
+                        File.WriteAllText(manifestPath, updatedJson);
+
+                        if (updatedErrors.Count > 0)
+                        {
+                            Console.Error.WriteLine("ERROR: Updated manifest validation failed (updated file written):\n");
+                            foreach (var issue in updatedErrors)
+                            {
+                                var pfx = string.IsNullOrEmpty(issue.Path) ? string.Empty : issue.Path + ": ";
+                                Console.Error.WriteLine($"  - {pfx}{issue.Message}");
+                            }
+                            PrintWarnings(updatedWarnings, toError: true);
+                            Environment.ExitCode = 1;
+                            return;
+                        }
+
+                        var updatedManifestTools = updatedManifest.Tools?.Select(t => t.Name).ToList() ?? new List<string>();
+                        var updatedManifestPrompts = updatedManifest.Prompts?.Select(p => p.Name).ToList() ?? new List<string>();
+                        updatedManifestTools.Sort(StringComparer.Ordinal);
+                        updatedManifestPrompts.Sort(StringComparer.Ordinal);
+                        if (!updatedManifestTools.SequenceEqual(sortedDiscoveredTools) || !updatedManifestPrompts.SequenceEqual(sortedDiscoveredPrompts))
+                        {
+                            Console.Error.WriteLine("ERROR: Updated manifest still differs from discovered capability names (updated file written).");
+                            PrintWarnings(updatedWarnings, toError: true);
+                            Environment.ExitCode = 1;
+                            return;
+                        }
+
+                        var remainingToolDiffs = ManifestCommandHelpers.GetToolMetadataDifferences(updatedManifest.Tools, discoveredTools);
+                        var remainingPromptDiffs = ManifestCommandHelpers.GetPromptMetadataDifferences(updatedManifest.Prompts, discoveredPrompts);
+                        if (remainingToolDiffs.Count > 0 || remainingPromptDiffs.Count > 0)
+                        {
+                            Console.Error.WriteLine("ERROR: Updated manifest metadata still differs from discovered results (updated file written).");
+                            PrintWarnings(updatedWarnings, toError: true);
+                            Environment.ExitCode = 1;
+                            return;
+                        }
+
+                        if (toolUpdatesApplied || promptUpdatesApplied)
+                        {
+                            Console.WriteLine("Updated manifest.json capabilities to match discovered results.");
+                        }
+                        if (metaUpdated)
+                        {
+                            Console.WriteLine("Updated manifest.json _meta static_responses to match discovered results.");
+                        }
+
+                        manifest = updatedManifest;
+                        currentWarnings = new List<ValidationIssue>(updatedWarnings);
                     }
                 }
 

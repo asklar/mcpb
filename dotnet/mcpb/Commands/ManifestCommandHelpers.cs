@@ -16,11 +16,11 @@ namespace Mcpb.Commands;
 internal static class ManifestCommandHelpers
 {
     internal record CapabilityDiscoveryResult(
-        List<McpbManifestTool> Tools, 
+        List<McpbManifestTool> Tools,
         List<McpbManifestPrompt> Prompts,
         McpbInitializeResult? InitializeResponse,
         McpbToolsListResult? ToolsListResponse);
-    
+
     /// <summary>
     /// Recursively filters out null properties from a JsonElement to match JsonIgnoreCondition.WhenWritingNull behavior
     /// </summary>
@@ -209,7 +209,7 @@ internal static class ManifestCommandHelpers
             });
             logInfo?.Invoke($"Discovering tools & prompts using: {command} {string.Join(' ', args)}");
             await using var client = await McpClient.CreateAsync(transport);
-            
+
             // Capture initialize response using McpClient properties
             // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
@@ -222,7 +222,7 @@ internal static class ManifestCommandHelpers
                     var capElement = JsonSerializer.Deserialize<JsonElement>(capJson);
                     capabilities = FilterNullProperties(capElement);
                 }
-                
+
                 // Serialize and filter serverInfo
                 object? serverInfo = null;
                 if (client.ServerInfo != null)
@@ -231,9 +231,9 @@ internal static class ManifestCommandHelpers
                     var infoElement = JsonSerializer.Deserialize<JsonElement>(infoJson);
                     serverInfo = FilterNullProperties(infoElement);
                 }
-                
+
                 var instructions = string.IsNullOrWhiteSpace(client.ServerInstructions) ? null : client.ServerInstructions;
-                
+
                 initializeResponse = new McpbInitializeResult
                 {
                     ProtocolVersion = client.NegotiatedProtocolVersion,
@@ -246,9 +246,9 @@ internal static class ManifestCommandHelpers
             {
                 logWarning?.Invoke($"Failed to capture initialize response: {ex.Message}");
             }
-            
+
             var tools = await client.ListToolsAsync(null, cts.Token);
-            
+
             // Capture tools/list response using typed Tool objects
             // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
@@ -259,7 +259,7 @@ internal static class ManifestCommandHelpers
                     // Serialize the tool and parse to JsonElement
                     var json = JsonSerializer.Serialize(tool.ProtocolTool);
                     var element = JsonSerializer.Deserialize<JsonElement>(json);
-                    
+
                     // Filter out null properties recursively
                     var filtered = FilterNullProperties(element);
                     toolsList.Add(filtered);
@@ -270,7 +270,7 @@ internal static class ManifestCommandHelpers
             {
                 logWarning?.Invoke($"Failed to capture tools/list response: {ex.Message}");
             }
-            
+
             foreach (var tool in tools)
             {
                 if (string.IsNullOrWhiteSpace(tool.Name)) continue;
@@ -697,11 +697,76 @@ internal static class ManifestCommandHelpers
             .ToList();
     }
 
+    internal static bool ApplyWindowsMetaStaticResponses(
+        McpbManifest manifest,
+        McpbInitializeResult? initializeResponse,
+        McpbToolsListResult? toolsListResponse)
+    {
+        if (initializeResponse == null && toolsListResponse == null)
+        {
+            return false;
+        }
+
+        var windowsMeta = GetWindowsMeta(manifest);
+        var staticResponses = windowsMeta.StaticResponses ?? new McpbStaticResponses();
+        bool changed = false;
+
+        if (initializeResponse != null)
+        {
+            var initializePayload = BuildInitializeStaticResponse(initializeResponse);
+            if (!AreJsonEquivalent(staticResponses.Initialize, initializePayload))
+            {
+                staticResponses.Initialize = initializePayload;
+                changed = true;
+            }
+        }
+
+        if (toolsListResponse != null)
+        {
+            if (!AreJsonEquivalent(staticResponses.ToolsList, toolsListResponse))
+            {
+                staticResponses.ToolsList = toolsListResponse;
+                changed = true;
+            }
+        }
+
+        if (!changed)
+        {
+            return false;
+        }
+
+        windowsMeta.StaticResponses = staticResponses;
+        SetWindowsMeta(manifest, windowsMeta);
+        return true;
+    }
+
     private static bool StringEqualsNormalized(string? a, string? b)
         => string.Equals(NormalizeString(a), NormalizeString(b), StringComparison.Ordinal);
 
     private static string? NormalizeString(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private static Dictionary<string, object> BuildInitializeStaticResponse(McpbInitializeResult response)
+    {
+        var result = new Dictionary<string, object>();
+        if (!string.IsNullOrWhiteSpace(response.ProtocolVersion))
+        {
+            result["protocolVersion"] = response.ProtocolVersion!;
+        }
+        if (response.Capabilities != null)
+        {
+            result["capabilities"] = response.Capabilities;
+        }
+        if (response.ServerInfo != null)
+        {
+            result["serverInfo"] = response.ServerInfo;
+        }
+        if (!string.IsNullOrWhiteSpace(response.Instructions))
+        {
+            result["instructions"] = response.Instructions!;
+        }
+        return result;
+    }
 
     private static IReadOnlyList<string> NormalizeArguments(IReadOnlyCollection<string>? args)
     {
@@ -719,5 +784,55 @@ internal static class ManifestCommandHelpers
     {
         var normalized = NormalizeString(value);
         return normalized ?? "(none)";
+    }
+
+    private static McpbWindowsMeta GetWindowsMeta(McpbManifest manifest)
+    {
+        if (manifest.Meta == null)
+        {
+            return new McpbWindowsMeta();
+        }
+
+        if (!manifest.Meta.TryGetValue("com.microsoft.windows", out var windowsMetaDict))
+        {
+            return new McpbWindowsMeta();
+        }
+
+        try
+        {
+            var json = JsonSerializer.Serialize(windowsMetaDict, McpbJsonContext.WriteOptions);
+            return JsonSerializer.Deserialize(json, McpbJsonContext.Default.McpbWindowsMeta) as McpbWindowsMeta ?? new McpbWindowsMeta();
+        }
+        catch
+        {
+            return new McpbWindowsMeta();
+        }
+    }
+
+    private static void SetWindowsMeta(McpbManifest manifest, McpbWindowsMeta windowsMeta)
+    {
+        manifest.Meta ??= new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
+
+        var json = JsonSerializer.Serialize(windowsMeta, McpbJsonContext.WriteOptions);
+        var dict = JsonSerializer.Deserialize(json, McpbJsonContext.Default.DictionaryStringObject) as Dictionary<string, object> ?? new Dictionary<string, object>();
+
+        manifest.Meta["com.microsoft.windows"] = dict;
+    }
+
+    private static bool AreJsonEquivalent(object? a, object? b)
+    {
+        if (ReferenceEquals(a, b)) return true;
+        if (a == null || b == null) return false;
+
+        try
+        {
+            var jsonA = JsonSerializer.Serialize(a, McpbJsonContext.WriteOptions);
+            var jsonB = JsonSerializer.Serialize(b, McpbJsonContext.WriteOptions);
+            return string.Equals(jsonA, jsonB, StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

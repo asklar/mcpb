@@ -14,6 +14,9 @@ namespace Mcpb.Json;
 [JsonSerializable(typeof(McpbInitializeResult))]
 [JsonSerializable(typeof(McpbToolsListResult))]
 [JsonSerializable(typeof(System.Text.Json.JsonElement))]
+[JsonSerializable(typeof(int))]
+[JsonSerializable(typeof(long))]
+
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 public partial class McpbJsonContext : JsonSerializerContext
 {
