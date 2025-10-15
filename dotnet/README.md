@@ -31,6 +31,10 @@ dotnet tool install --global Mcpb.Cli --add-source ./bin/Release
 | `mcpb info <file>`                                                                      | Show bundle info (and signature) |
 | `mcpb unsign <file>`                                                                    | Remove signature                 |
 
+## Windows `_meta` Updates
+
+When you run `mcpb validate --update` or `mcpb pack --update`, the tool captures the Windows-focused initialize and tools/list responses returned during MCP discovery. The static responses are written to `manifest._meta["com.microsoft.windows"].static_responses` so Windows clients can use cached protocol data without invoking the server. Re-run either command with `--update` whenever you want to refresh those cached responses.
+
 ## License Compliance
 
 MIT licensed
