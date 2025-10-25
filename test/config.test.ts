@@ -301,6 +301,164 @@ describe("getMcpConfigForManifest", () => {
 
     expect(result?.args).toEqual(["server.js", "--verbose=true"]);
   });
+
+  it("should automatically resolve known folders when systemDirs is not provided", async () => {
+    const manifest: McpbManifest = {
+      ...baseManifest,
+      server: {
+        type: "node",
+        entry_point: "server.js",
+        mcp_config: {
+          command: "node",
+          args: ["server.js"],
+          env: {
+            MUSIC_DIR: "${MUSIC}",
+            VIDEOS_DIR: "${VIDEOS}",
+          },
+        },
+      },
+    };
+
+    const result = await getMcpConfigForManifest({
+      manifest,
+      extensionPath: "/ext/path",
+      // systemDirs not provided
+      userConfig: {},
+      pathSeparator: "/",
+      logger: mockLogger,
+    });
+
+    expect(result?.env?.MUSIC_DIR).toBeDefined();
+    expect(result?.env?.MUSIC_DIR).toContain("Music");
+    expect(result?.env?.VIDEOS_DIR).toBeDefined();
+    expect(result?.env?.VIDEOS_DIR).toContain("Videos");
+  });
+
+  it("should handle new cross-platform folder tokens", async () => {
+    const manifest: McpbManifest = {
+      ...baseManifest,
+      server: {
+        type: "node",
+        entry_point: "server.js",
+        mcp_config: {
+          command: "node",
+          args: [
+            "server.js",
+            "--music=${MUSIC}",
+            "--pictures=${PICTURES}",
+            "--videos=${VIDEOS}",
+            "--templates=${TEMPLATES}",
+            "--public=${PUBLIC}",
+          ],
+        },
+      },
+    };
+
+    const result = await getMcpConfigForManifest({
+      manifest,
+      extensionPath: "/ext/path",
+      userConfig: {},
+      pathSeparator: "/",
+      logger: mockLogger,
+    });
+
+    expect(result?.args).toHaveLength(6);
+    expect(result?.args?.[0]).toBe("server.js");
+    expect(result?.args?.[1]).toContain("Music");
+    expect(result?.args?.[2]).toContain("Pictures");
+    expect(result?.args?.[3]).toContain("Videos");
+    expect(result?.args?.[4]).toContain("Templates");
+    expect(result?.args?.[5]).toContain("Public");
+  });
+
+  it("should handle platform-specific tokens in platform_overrides", async () => {
+    const manifest: McpbManifest = {
+      ...baseManifest,
+      server: {
+        type: "node",
+        entry_point: "server.js",
+        mcp_config: {
+          command: "node",
+          args: ["server.js"],
+          env: {
+            DATA_PATH: "${HOME}/.myapp",
+          },
+          platform_overrides: {
+            win32: {
+              env: {
+                DATA_PATH: "${WINDOWS:LOCALAPPDATA}/MyApp",
+              },
+            },
+            darwin: {
+              env: {
+                DATA_PATH: "${MACOS:APPLICATION_SUPPORT}/MyApp",
+              },
+            },
+            linux: {
+              env: {
+                DATA_PATH: "${LINUX:DATA}/myapp",
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = await getMcpConfigForManifest({
+      manifest,
+      extensionPath: "/ext/path",
+      userConfig: {},
+      pathSeparator: "/",
+      logger: mockLogger,
+    });
+
+    // Should use the platform-specific override for current platform
+    expect(result?.env?.DATA_PATH).toBeDefined();
+
+    // On current platform, the platform-specific token should be resolved
+    const platform = process.platform;
+    if (platform === "win32") {
+      expect(result?.env?.DATA_PATH).toContain("AppData");
+      expect(result?.env?.DATA_PATH).toContain("MyApp");
+    } else if (platform === "darwin") {
+      expect(result?.env?.DATA_PATH).toContain("Library");
+      expect(result?.env?.DATA_PATH).toContain("Application Support");
+      expect(result?.env?.DATA_PATH).toContain("MyApp");
+    } else if (platform === "linux") {
+      expect(result?.env?.DATA_PATH).toContain("myapp");
+    }
+  });
+
+  it("should use systemDirs when provided for backward compatibility", async () => {
+    const customSystemDirs = {
+      HOME: "/custom/home",
+      MUSIC: "/custom/music",
+      DESKTOP: "/custom/desktop",
+    };
+
+    const manifest: McpbManifest = {
+      ...baseManifest,
+      server: {
+        type: "node",
+        entry_point: "server.js",
+        mcp_config: {
+          command: "node",
+          args: ["server.js", "${MUSIC}"],
+        },
+      },
+    };
+
+    const result = await getMcpConfigForManifest({
+      manifest,
+      extensionPath: "/ext/path",
+      systemDirs: customSystemDirs,
+      userConfig: {},
+      pathSeparator: "/",
+      logger: mockLogger,
+    });
+
+    expect(result?.args).toEqual(["server.js", "/custom/music"]);
+  });
 });
 
 describe("hasRequiredConfigMissing", () => {

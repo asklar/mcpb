@@ -17,7 +17,7 @@ A basic `manifest.json` with just the required fields looks like this:
   "description": "A simple MCP extension", // Brief description of what the extension does
   "author": {
     // Author information (required)
-    "name": "Extension Author" // Author's name (required field)
+    "name": "Extension Author", // Author's name (required field)
   },
   "server": {
     // Server configuration (required)
@@ -28,10 +28,10 @@ A basic `manifest.json` with just the required fields looks like this:
       "command": "node", // Command to run the server
       "args": [
         // Arguments passed to the command
-        "${__dirname}/server/index.js" // ${__dirname} is replaced with the extension's directory
-      ]
-    }
-  }
+        "${__dirname}/server/index.js", // ${__dirname} is replaced with the extension's directory
+      ],
+    },
+  },
 }
 ```
 
@@ -212,12 +212,12 @@ A full `manifest.json` with most of the optional fields looks like this:
                       "type": "string"
                     }
                   }
-                },
+                }
               }
             }
           ]
         }
-      },
+      }
     }
   }
 }
@@ -254,7 +254,7 @@ A full `manifest.json` with most of the optional fields looks like this:
 - **privacy_policies**: Array of URLs to privacy policies for external services that handle user data. Required when the extension connects to external services (first- or third-party) that process user data. Each URL should link to the respective service's privacy policy document
 - **compatibility**: Compatibility requirements (client app version, platforms, and runtime versions)
 - **user_config**: User-configurable options for the extension (see User Configuration section)
-- **_meta**: Platform-specific client integration metadata (e.g., Windows `package_family_name`, macOS bundle identifiers) enabling tighter OS/app store integration. The keys in the `_meta` object are reverse-DNS namespaced, and the values are a dictionary of platform-specific metadata.
+- **\_meta**: Platform-specific client integration metadata (e.g., Windows `package_family_name`, macOS bundle identifiers) enabling tighter OS/app store integration. The keys in the `_meta` object are reverse-DNS namespaced, and the values are a dictionary of platform-specific metadata.
 - **localization**: Location of translated strings for user-facing fields (`resources` path containing a `${locale}` placeholder and `default_locale`).
 
 ### Localization
@@ -472,20 +472,90 @@ When installing the extension, apps will automatically generate the appropriate 
 The implementing desktop app will substitute variables in the `mcp_config` to make extensions more portable:
 
 - **`${__dirname}`**: This variable is replaced with the absolute path to the extension's directory. This is useful for referencing files within the extension package.
-- **`${HOME}`**: User's home directory
-- **`${DESKTOP}`**: User's desktop directory
-- **`${DOCUMENTS}`**: User's documents directory
-- **`${DOWNLOADS}`**: User's downloads directory
 - **`${pathSeparator}`** or **`${/}`**: Path separator for the current platform
 
-Example:
+**Folder Tokens:**
+
+Cross-platform folder tokens (available on all platforms):
+
+| Token          | Description                    |
+| -------------- | ------------------------------ |
+| `${HOME}`      | User's home directory          |
+| `${DESKTOP}`   | User's desktop directory       |
+| `${DOCUMENTS}` | User's documents directory     |
+| `${DOWNLOADS}` | User's downloads directory     |
+| `${MUSIC}`     | User's music directory         |
+| `${PICTURES}`  | User's pictures directory      |
+| `${VIDEOS}`    | User's videos directory        |
+| `${TEMPLATES}` | User's templates directory     |
+| `${PUBLIC}`    | User's public/shared directory |
+
+Platform-specific folder tokens (only available on the specified platform):
+
+**Windows-only tokens:**
+
+- `${WINDOWS:LOCALAPPDATA}` - Local application data folder
+- `${WINDOWS:ROAMINGAPPDATA}` - Roaming application data folder
+- `${WINDOWS:PROGRAMDATA}` - Common application data folder
+- `${WINDOWS:STARTUP}` - User startup folder
+- `${WINDOWS:TEMP}` - Temporary files folder
+
+**macOS-only tokens:**
+
+- `${MACOS:APPLICATION_SUPPORT}` - Application support folder
+- `${MACOS:CACHES}` - Caches folder
+- `${MACOS:LIBRARY}` - User library folder
+
+**Linux-only tokens:**
+
+- `${LINUX:CONFIG}` - Config directory (XDG_CONFIG_HOME)
+- `${LINUX:DATA}` - Data directory (XDG_DATA_HOME)
+- `${LINUX:CACHE}` - Cache directory (XDG_CACHE_HOME)
+
+**Platform-specific token behavior:**
+
+- Platform-specific tokens (e.g., `${WINDOWS:LOCALAPPDATA}`) are only resolved on their target platform
+- On other platforms, these tokens remain as literal strings
+- Use platform-specific tokens within `platform_overrides` for platform-specific configurations
+
+Example with cross-platform tokens:
 
 ```json
 "mcp_config": {
   "command": "python",
   "args": ["${__dirname}/server/main.py"],
   "env": {
-    "CONFIG_PATH": "${__dirname}/config/settings.json"
+    "CONFIG_PATH": "${__dirname}/config/settings.json",
+    "MUSIC_LIBRARY": "${MUSIC}"
+  }
+}
+```
+
+Example with platform-specific tokens:
+
+```json
+"mcp_config": {
+  "command": "node",
+  "args": ["${__dirname}/server.js"],
+  "env": {
+    "DATA_PATH": "${HOME}/.myapp"
+  },
+  "platform_overrides": {
+    "win32": {
+      "env": {
+        "DATA_PATH": "${WINDOWS:LOCALAPPDATA}/MyApp"
+      }
+    },
+    "darwin": {
+      "env": {
+        "DATA_PATH": "${MACOS:APPLICATION_SUPPORT}/MyApp"
+      }
+    },
+    "linux": {
+      "env": {
+        "DATA_PATH": "${LINUX:DATA}/myapp"
+      }
+    }
   }
 }
 ```
@@ -525,11 +595,19 @@ User configuration values support variable substitution in `mcp_config`:
 - Environment variables are ideal for sensitive data
 - Command arguments work well for paths and non-sensitive options
 
-Available variables for default values:
+Available folder tokens for default values (see Variable Substitution section for complete list):
 
 - **`${HOME}`**: User's home directory
 - **`${DESKTOP}`**: User's desktop directory
 - **`${DOCUMENTS}`**: User's documents directory
+- **`${DOWNLOADS}`**: User's downloads directory
+- **`${MUSIC}`**: User's music directory
+- **`${PICTURES}`**: User's pictures directory
+- **`${VIDEOS}`**: User's videos directory
+- **`${TEMPLATES}`**: User's templates directory
+- **`${PUBLIC}`**: User's public/shared directory
+
+Platform-specific tokens are also available (e.g., `${WINDOWS:LOCALAPPDATA}`, `${MACOS:APPLICATION_SUPPORT}`, `${LINUX:DATA}`) but should be used carefully as they won't resolve on other platforms.
 
 ### Examples
 
@@ -544,7 +622,7 @@ Available variables for default values:
       "description": "Select directories the filesystem server can access",
       "multiple": true,
       "required": true,
-      "default": ["${HOME}/Desktop", "${HOME}/Documents"]
+      "default": ["${DESKTOP}", "${DOCUMENTS}"]
     }
   },
   "server": {
@@ -554,6 +632,32 @@ Available variables for default values:
         "${__dirname}/server/index.js",
         "${user_config.allowed_directories}"
       ]
+    }
+  }
+}
+```
+
+**Media Library Extension with New Folder Tokens:**
+
+```json
+{
+  "user_config": {
+    "media_folders": {
+      "type": "directory",
+      "title": "Media Folders",
+      "description": "Folders to scan for media files",
+      "multiple": true,
+      "required": false,
+      "default": ["${MUSIC}", "${PICTURES}", "${VIDEOS}"]
+    }
+  },
+  "server": {
+    "mcp_config": {
+      "command": "python",
+      "args": ["${__dirname}/server/main.py"],
+      "env": {
+        "MEDIA_PATHS": "${user_config.media_folders}"
+      }
     }
   }
 }
@@ -704,4 +808,3 @@ The `_generated` fields:
 - **prompts_generated**: Server generates additional prompts beyond those listed (default: false)
 
 This helps implementing apps understand that querying the server at runtime will reveal more capabilities than what's declared in the manifest.
-

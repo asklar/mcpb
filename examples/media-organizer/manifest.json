@@ -1,0 +1,77 @@
+{
+  "manifest_version": "0.3",
+  "name": "media-organizer",
+  "display_name": "Media Organizer",
+  "version": "1.0.0",
+  "description": "Organize and manage your media files across different folders",
+  "author": {
+    "name": "Example Developer",
+    "email": "dev@example.com"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "MUSIC_DIR": "${MUSIC}",
+        "PICTURES_DIR": "${PICTURES}",
+        "VIDEOS_DIR": "${VIDEOS}",
+        "APP_DATA": "${HOME}/.media-organizer"
+      },
+      "platform_overrides": {
+        "win32": {
+          "env": {
+            "MUSIC_DIR": "${MUSIC}",
+            "PICTURES_DIR": "${PICTURES}",
+            "VIDEOS_DIR": "${VIDEOS}",
+            "APP_DATA": "${WINDOWS:LOCALAPPDATA}/MediaOrganizer"
+          }
+        },
+        "darwin": {
+          "env": {
+            "MUSIC_DIR": "${MUSIC}",
+            "PICTURES_DIR": "${PICTURES}",
+            "VIDEOS_DIR": "${VIDEOS}",
+            "APP_DATA": "${MACOS:APPLICATION_SUPPORT}/MediaOrganizer"
+          }
+        },
+        "linux": {
+          "env": {
+            "MUSIC_DIR": "${MUSIC}",
+            "PICTURES_DIR": "${PICTURES}",
+            "VIDEOS_DIR": "${VIDEOS}",
+            "APP_DATA": "${LINUX:DATA}/media-organizer"
+          }
+        }
+      }
+    }
+  },
+  "user_config": {
+    "additional_folders": {
+      "type": "directory",
+      "title": "Additional Media Folders",
+      "description": "Additional folders to include in the media library",
+      "multiple": true,
+      "required": false,
+      "default": []
+    },
+    "scan_templates": {
+      "type": "boolean",
+      "title": "Scan Templates Folder",
+      "description": "Include the templates folder in media scanning",
+      "default": false
+    }
+  },
+  "tools": [
+    {
+      "name": "organize_media",
+      "description": "Organize media files by type and date"
+    },
+    {
+      "name": "search_media",
+      "description": "Search for media files across all configured folders"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import type {
   McpbUserConfigValues,
   McpServerConfig,
 } from "../types.js";
+import { getAllKnownFolders } from "./known-folders.js";
 
 /**
  * This file contains utility functions for handling MCPB configuration,
@@ -87,7 +88,7 @@ export function replaceVariables(
 interface GetMcpConfigForManifestOptions {
   manifest: McpbManifest;
   extensionPath: string;
-  systemDirs: Record<string, string>;
+  systemDirs?: Record<string, string>;
   userConfig: McpbUserConfigValues;
   pathSeparator: string;
   logger?: Logger;
@@ -131,11 +132,14 @@ export async function getMcpConfigForManifest(
     return undefined;
   }
 
+  // Get known folders for the current platform, or use provided systemDirs
+  const knownFolders = systemDirs || getAllKnownFolders();
+
   const variables: Record<string, string | string[]> = {
     __dirname: extensionPath,
     pathSeparator,
     "/": pathSeparator,
-    ...systemDirs,
+    ...knownFolders,
   };
 
   // Build merged configuration from defaults and user settings
