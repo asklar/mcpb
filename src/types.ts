@@ -1,8 +1,5 @@
 import type * as z from "zod";
 
-import type { McpbManifestSchema as McpbManifestSchema_v0_1 } from "./schemas/0.1.js";
-import type { McpbManifestSchema as McpbManifestSchema_v0_2 } from "./schemas/0.2.js";
-import type { McpbManifestSchema as McpbManifestSchema_v0_3 } from "./schemas/0.3.js";
 import type {
   McpbManifestAuthorSchema,
   McpbManifestCompatibilitySchema,
@@ -10,6 +7,7 @@ import type {
   McpbManifestPlatformOverrideSchema,
   McpbManifestPromptSchema,
   McpbManifestRepositorySchema,
+  McpbManifestSchema,
   McpbManifestServerSchema,
   McpbManifestToolSchema,
   McpbSignatureInfoSchema,
@@ -48,14 +46,7 @@ export type McpbUserConfigurationOption = z.infer<
 
 export type McpbUserConfigValues = z.infer<typeof McpbUserConfigValuesSchema>;
 
-/**
- * Discriminated union of all supported manifest versions.
- * Discriminated by manifest_version or dxt_version field.
- */
-export type McpbManifest =
-  | z.infer<typeof McpbManifestSchema_v0_1>
-  | z.infer<typeof McpbManifestSchema_v0_2>
-  | z.infer<typeof McpbManifestSchema_v0_3>;
+export type McpbManifest = z.infer<typeof McpbManifestSchema>;
 
 /**
  * Information about a MCPB package signature
