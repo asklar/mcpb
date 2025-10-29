@@ -28,6 +28,10 @@
       "require": "./dist/cli.js"
     },
     "./mcpb-manifest.schema.json": "./dist/mcpb-manifest.schema.json",
+    "./mcpb-manifest-v0.1.schema.json": "./dist/mcpb-manifest-v0.1.schema.json",
+    "./mcpb-manifest-v0.2.schema.json": "./dist/mcpb-manifest-v0.2.schema.json",
+    "./mcpb-manifest-v0.3.schema.json": "./dist/mcpb-manifest-v0.3.schema.json",
+    "./mcpb-manifest-latest.schema.json": "./dist/mcpb-manifest-latest.schema.json",
     "./schemas": {
       "types": "./dist/schemas/index.d.ts",
       "import": "./dist/schemas/index.js",
