@@ -1,5 +1,8 @@
 import type * as z from "zod";
 
+import type { McpbManifestSchema as McpbManifestSchema_v0_1 } from "./schemas/0.1.js";
+import type { McpbManifestSchema as McpbManifestSchema_v0_2 } from "./schemas/0.2.js";
+import type { McpbManifestSchema as McpbManifestSchema_v0_3 } from "./schemas/0.3.js";
 import type {
   McpbManifestAuthorSchema,
   McpbManifestCompatibilitySchema,
@@ -7,7 +10,6 @@ import type {
   McpbManifestPlatformOverrideSchema,
   McpbManifestPromptSchema,
   McpbManifestRepositorySchema,
-  McpbManifestSchema,
   McpbManifestServerSchema,
   McpbManifestToolSchema,
   McpbSignatureInfoSchema,
@@ -15,9 +17,6 @@ import type {
   McpbUserConfigValuesSchema,
   McpServerConfigSchema,
 } from "./schemas/latest.js";
-import type { McpbManifestSchema as McpbManifestSchema_v0_1 } from "./schemas/0.1.js";
-import type { McpbManifestSchema as McpbManifestSchema_v0_2 } from "./schemas/0.2.js";
-import type { McpbManifestSchema as McpbManifestSchema_v0_3 } from "./schemas/0.3.js";
 
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 

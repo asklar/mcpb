@@ -46,6 +46,7 @@ To set up commit signing, see [GitHub's documentation on commit signature verifi
 ### Bug Reports
 
 When filing a bug report, please include:
+
 - Clear description of the issue
 - Steps to reproduce
 - Expected vs actual behavior
@@ -55,6 +56,7 @@ When filing a bug report, please include:
 ### Feature Requests
 
 We welcome feature suggestions! Please:
+
 - Clearly describe the feature and use case
 - Explain why this would be valuable to users
 - Consider if it aligns with the project's goals
@@ -62,6 +64,7 @@ We welcome feature suggestions! Please:
 ### Code Contributions
 
 We especially welcome:
+
 - Bug fixes
 - Documentation improvements
 - Test coverage improvements
