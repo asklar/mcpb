@@ -180,6 +180,194 @@ internal static class ManifestCommandHelpers
         return errors;
     }
 
+    internal static List<string> ValidateLocalizationCompleteness(McpbManifest manifest, string baseDir, HashSet<string>? rootProps = null)
+    {
+        var errors = new List<string>();
+        
+        if (manifest.Localization == null)
+            return errors;
+
+        // Get the resource path pattern and default locale
+        var resourcePath = manifest.Localization.Resources ?? "mcpb-resources/${locale}.json";
+        var defaultLocale = manifest.Localization.DefaultLocale ?? "en-US";
+
+        // Determine localizable properties present in the manifest
+        // Only check properties that were explicitly set in the JSON
+        var localizableProperties = new List<string>();
+        if (rootProps != null)
+        {
+            if (rootProps.Contains("display_name") && !string.IsNullOrWhiteSpace(manifest.DisplayName)) 
+                localizableProperties.Add("display_name");
+            if (rootProps.Contains("description") && !string.IsNullOrWhiteSpace(manifest.Description)) 
+                localizableProperties.Add("description");
+            if (rootProps.Contains("long_description") && !string.IsNullOrWhiteSpace(manifest.LongDescription)) 
+                localizableProperties.Add("long_description");
+            if (rootProps.Contains("author") && !string.IsNullOrWhiteSpace(manifest.Author?.Name)) 
+                localizableProperties.Add("author.name");
+            if (rootProps.Contains("license") && !string.IsNullOrWhiteSpace(manifest.License)) 
+                localizableProperties.Add("license");
+            if (rootProps.Contains("keywords") && manifest.Keywords != null && manifest.Keywords.Count > 0) 
+                localizableProperties.Add("keywords");
+        }
+        else
+        {
+            // Fallback if rootProps not provided
+            if (!string.IsNullOrWhiteSpace(manifest.DisplayName)) localizableProperties.Add("display_name");
+            if (!string.IsNullOrWhiteSpace(manifest.Description)) localizableProperties.Add("description");
+            if (!string.IsNullOrWhiteSpace(manifest.LongDescription)) localizableProperties.Add("long_description");
+            if (!string.IsNullOrWhiteSpace(manifest.Author?.Name)) localizableProperties.Add("author.name");
+            if (!string.IsNullOrWhiteSpace(manifest.License) && manifest.License != "MIT") localizableProperties.Add("license"); // Don't check default
+            if (manifest.Keywords != null && manifest.Keywords.Count > 0) localizableProperties.Add("keywords");
+        }
+
+        // Also check tool and prompt descriptions
+        var toolsWithDescriptions = manifest.Tools?.Where(t => !string.IsNullOrWhiteSpace(t.Description)).ToList() ?? new List<McpbManifestTool>();
+        var promptsWithDescriptions = manifest.Prompts?.Where(p => !string.IsNullOrWhiteSpace(p.Description)).ToList() ?? new List<McpbManifestPrompt>();
+
+        if (localizableProperties.Count == 0 && toolsWithDescriptions.Count == 0 && promptsWithDescriptions.Count == 0)
+            return errors; // Nothing to localize
+
+        // Find all locale files by scanning the directory pattern
+        var localeFiles = FindLocaleFiles(resourcePath, baseDir, defaultLocale);
+        
+        if (localeFiles.Count == 0)
+            return errors; // No additional locale files found, nothing to validate
+
+        // Check each locale file for completeness
+        foreach (var (locale, filePath) in localeFiles)
+        {
+            if (locale == defaultLocale)
+                continue; // Skip default locale (values are in main manifest)
+
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    errors.Add($"Locale file not found: {filePath} (for locale {locale})");
+                    continue;
+                }
+
+                var localeJson = File.ReadAllText(filePath);
+                using var localeDoc = JsonDocument.Parse(localeJson);
+                var root = localeDoc.RootElement;
+
+                // Check for localizable properties
+                foreach (var prop in localizableProperties)
+                {
+                    if (prop == "author.name")
+                    {
+                        if (!root.TryGetProperty("author", out var authorElem) || 
+                            !authorElem.TryGetProperty("name", out _))
+                        {
+                            errors.Add($"Missing localization for '{prop}' in {locale} ({filePath})");
+                        }
+                    }
+                    else if (!root.TryGetProperty(prop, out _))
+                    {
+                        errors.Add($"Missing localization for '{prop}' in {locale} ({filePath})");
+                    }
+                }
+
+                // Check tool descriptions
+                if (toolsWithDescriptions.Count > 0 && root.TryGetProperty("tools", out var toolsElem) && toolsElem.ValueKind == JsonValueKind.Array)
+                {
+                    var localizedTools = toolsElem.EnumerateArray().ToList();
+                    foreach (var tool in toolsWithDescriptions)
+                    {
+                        var found = localizedTools.Any(t => 
+                            t.TryGetProperty("name", out var nameElem) && 
+                            nameElem.GetString() == tool.Name &&
+                            t.TryGetProperty("description", out _));
+                        
+                        if (!found)
+                        {
+                            errors.Add($"Missing localized description for tool '{tool.Name}' in {locale} ({filePath})");
+                        }
+                    }
+                }
+
+                // Check prompt descriptions
+                if (promptsWithDescriptions.Count > 0 && root.TryGetProperty("prompts", out var promptsElem) && promptsElem.ValueKind == JsonValueKind.Array)
+                {
+                    var localizedPrompts = promptsElem.EnumerateArray().ToList();
+                    foreach (var prompt in promptsWithDescriptions)
+                    {
+                        var found = localizedPrompts.Any(p => 
+                            p.TryGetProperty("name", out var nameElem) && 
+                            nameElem.GetString() == prompt.Name &&
+                            p.TryGetProperty("description", out _));
+                        
+                        if (!found)
+                        {
+                            errors.Add($"Missing localized description for prompt '{prompt.Name}' in {locale} ({filePath})");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Error reading locale file {filePath}: {ex.Message}");
+            }
+        }
+
+        return errors;
+    }
+
+    private static List<(string locale, string filePath)> FindLocaleFiles(string resourcePattern, string baseDir, string defaultLocale)
+    {
+        var localeFiles = new List<(string, string)>();
+        
+        // Extract the directory and file pattern
+        var patternIndex = resourcePattern.IndexOf("${locale}", StringComparison.OrdinalIgnoreCase);
+        if (patternIndex < 0)
+            return localeFiles;
+
+        var beforePlaceholder = resourcePattern.Substring(0, patternIndex);
+        var afterPlaceholder = resourcePattern.Substring(patternIndex + "${locale}".Length);
+        
+        var lastSlash = beforePlaceholder.LastIndexOfAny(new[] { '/', '\\' });
+        string dirPath, filePrefix;
+        
+        if (lastSlash >= 0)
+        {
+            dirPath = beforePlaceholder.Substring(0, lastSlash);
+            filePrefix = beforePlaceholder.Substring(lastSlash + 1);
+        }
+        else
+        {
+            dirPath = "";
+            filePrefix = beforePlaceholder;
+        }
+
+        var fullDirPath = string.IsNullOrEmpty(dirPath) ? baseDir : Path.Combine(baseDir, dirPath.Replace('/', Path.DirectorySeparatorChar));
+        
+        if (!Directory.Exists(fullDirPath))
+            return localeFiles;
+
+        // Find all files matching the pattern
+        var searchPattern = filePrefix + "*" + afterPlaceholder;
+        var files = Directory.GetFiles(fullDirPath, searchPattern, SearchOption.TopDirectoryOnly);
+        
+        foreach (var file in files)
+        {
+            var fileName = Path.GetFileName(file);
+            
+            // Extract locale from filename
+            if (fileName.StartsWith(filePrefix) && fileName.EndsWith(afterPlaceholder))
+            {
+                var localeStart = filePrefix.Length;
+                var localeEnd = fileName.Length - afterPlaceholder.Length;
+                if (localeEnd > localeStart)
+                {
+                    var locale = fileName.Substring(localeStart, localeEnd - localeStart);
+                    localeFiles.Add((locale, file));
+                }
+            }
+        }
+
+        return localeFiles;
+    }
+
     internal static async Task<CapabilityDiscoveryResult> DiscoverCapabilitiesAsync(
         string dir,
         McpbManifest manifest,

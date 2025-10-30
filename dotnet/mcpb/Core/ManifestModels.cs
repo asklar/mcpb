@@ -83,7 +83,7 @@ public class McpbManifestLocalization
 public class McpbManifestIcon
 {
     [JsonPropertyName("src")] public string Src { get; set; } = string.Empty;
-    [JsonPropertyName("sizes")] public string Sizes { get; set; } = string.Empty;
+    [JsonPropertyName("size")] public string Size { get; set; } = string.Empty;
     [JsonPropertyName("theme")] public string? Theme { get; set; }
 }
 

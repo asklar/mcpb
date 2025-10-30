@@ -129,7 +129,7 @@ public class CliPackFileValidationTests
         manifest.ManifestVersion = "0.3";
         manifest.Icons = new List<Mcpb.Core.McpbManifestIcon>
         {
-            new() { Src = "icon-16.png", Sizes = "16x16" }
+            new() { Src = "icon-16.png", Size = "16x16" }
         };
         File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
@@ -149,7 +149,7 @@ public class CliPackFileValidationTests
         manifest.Screenshots = null; // Remove screenshots requirement for this test
         manifest.Icons = new List<Mcpb.Core.McpbManifestIcon>
         {
-            new() { Src = "icon-16.png", Sizes = "16x16" }
+            new() { Src = "icon-16.png", Size = "16x16" }
         };
         File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
         var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");

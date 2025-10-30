@@ -137,10 +137,10 @@ public static class ManifestValidator
                 var icon = m.Icons[i];
                 if (string.IsNullOrWhiteSpace(icon.Src))
                     issues.Add(new($"icons[{i}].src", "src is required"));
-                if (string.IsNullOrWhiteSpace(icon.Sizes))
-                    issues.Add(new($"icons[{i}].sizes", "sizes is required"));
-                else if (!Regex.IsMatch(icon.Sizes, "^\\d+x\\d+$"))
-                    issues.Add(new($"icons[{i}].sizes", "sizes must be in the format \"WIDTHxHEIGHT\" (e.g., \"16x16\")"));
+                if (string.IsNullOrWhiteSpace(icon.Size))
+                    issues.Add(new($"icons[{i}].size", "size is required"));
+                else if (!Regex.IsMatch(icon.Size, "^\\d+x\\d+$"))
+                    issues.Add(new($"icons[{i}].size", "size must be in the format \"WIDTHxHEIGHT\" (e.g., \"16x16\")"));
                 if (icon.Theme != null && string.IsNullOrWhiteSpace(icon.Theme))
                     issues.Add(new($"icons[{i}].theme", "theme cannot be empty when provided"));
             }

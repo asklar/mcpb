@@ -172,8 +172,8 @@ public class ManifestValidatorTests
         m.ManifestVersion = "0.3";
         m.Icons = new List<McpbManifestIcon>
         {
-            new() { Src = "icon-16.png", Sizes = "16x16" },
-            new() { Src = "icon-32.png", Sizes = "32x32", Theme = "light" }
+            new() { Src = "icon-16.png", Size = "16x16" },
+            new() { Src = "icon-32.png", Size = "32x32", Theme = "light" }
         };
         var issues = ManifestValidator.Validate(m);
         Assert.Empty(issues);
@@ -186,36 +186,36 @@ public class ManifestValidatorTests
         m.ManifestVersion = "0.3";
         m.Icons = new List<McpbManifestIcon>
         {
-            new() { Src = "", Sizes = "16x16" }
+            new() { Src = "", Size = "16x16" }
         };
         var issues = ManifestValidator.Validate(m);
         Assert.Contains(issues, i => i.Path == "icons[0].src");
     }
 
     [Fact]
-    public void IconMissingSizes_Fails()
+    public void IconMissingSize_Fails()
     {
         var m = BaseManifest();
         m.ManifestVersion = "0.3";
         m.Icons = new List<McpbManifestIcon>
         {
-            new() { Src = "icon.png", Sizes = "" }
+            new() { Src = "icon.png", Size = "" }
         };
         var issues = ManifestValidator.Validate(m);
-        Assert.Contains(issues, i => i.Path == "icons[0].sizes");
+        Assert.Contains(issues, i => i.Path == "icons[0].size");
     }
 
     [Fact]
-    public void IconInvalidSizesFormat_Fails()
+    public void IconInvalidSizeFormat_Fails()
     {
         var m = BaseManifest();
         m.ManifestVersion = "0.3";
         m.Icons = new List<McpbManifestIcon>
         {
-            new() { Src = "icon.png", Sizes = "16" }
+            new() { Src = "icon.png", Size = "16" }
         };
         var issues = ManifestValidator.Validate(m);
-        Assert.Contains(issues, i => i.Path == "icons[0].sizes" && i.Message.Contains("WIDTHxHEIGHT"));
+        Assert.Contains(issues, i => i.Path == "icons[0].size" && i.Message.Contains("WIDTHxHEIGHT"));
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class ManifestValidatorTests
         m.ManifestVersion = "0.3";
         m.Icons = new List<McpbManifestIcon>
         {
-            new() { Src = "icon.png", Sizes = "16x16", Theme = "" }
+            new() { Src = "icon.png", Size = "16x16", Theme = "" }
         };
         var issues = ManifestValidator.Validate(m);
         Assert.Contains(issues, i => i.Path == "icons[0].theme" && i.Message.Contains("empty"));
