@@ -112,17 +112,18 @@ public class ManifestValidatorTests
     }
 
     [Fact]
-    public void LocalizationMissingResources_Fails()
+    public void LocalizationWithDefaults_Passes()
     {
         var m = BaseManifest();
         m.ManifestVersion = "0.3";
+        // Resources and DefaultLocale are optional with defaults
         m.Localization = new McpbManifestLocalization
         {
-            Resources = "",
-            DefaultLocale = "en-US"
+            Resources = null, // defaults to "mcpb-resources/${locale}.json"
+            DefaultLocale = null // defaults to "en-US"
         };
         var issues = ManifestValidator.Validate(m);
-        Assert.Contains(issues, i => i.Path == "localization.resources");
+        Assert.Empty(issues);
     }
 
     [Fact]
@@ -140,17 +141,14 @@ public class ManifestValidatorTests
     }
 
     [Fact]
-    public void LocalizationMissingDefaultLocale_Fails()
+    public void LocalizationEmptyObject_PassesWithDefaults()
     {
         var m = BaseManifest();
         m.ManifestVersion = "0.3";
-        m.Localization = new McpbManifestLocalization
-        {
-            Resources = "locales/${locale}/messages.json",
-            DefaultLocale = ""
-        };
+        // Empty localization object should use defaults
+        m.Localization = new McpbManifestLocalization();
         var issues = ManifestValidator.Validate(m);
-        Assert.Contains(issues, i => i.Path == "localization.default_locale");
+        Assert.Empty(issues);
     }
 
     [Fact]

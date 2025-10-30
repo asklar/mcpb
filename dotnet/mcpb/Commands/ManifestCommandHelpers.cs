@@ -159,21 +159,21 @@ internal static class ManifestCommandHelpers
             }
         }
 
-        if (manifest.Localization != null && !string.IsNullOrWhiteSpace(manifest.Localization.Resources))
+        if (manifest.Localization != null)
         {
             // Check if the localization resources path exists
-            // The resources path should contain a ${locale} placeholder, so we need to check with the default_locale
-            var resourcePath = manifest.Localization.Resources;
-            if (!string.IsNullOrWhiteSpace(manifest.Localization.DefaultLocale))
+            // Resources defaults to "mcpb-resources/${locale}.json" if not specified
+            var resourcePath = manifest.Localization.Resources ?? "mcpb-resources/${locale}.json";
+            // DefaultLocale defaults to "en-US" if not specified
+            var defaultLocale = manifest.Localization.DefaultLocale ?? "en-US";
+            
+            var defaultLocalePath = resourcePath.Replace("${locale}", defaultLocale, StringComparison.OrdinalIgnoreCase);
+            var resolved = Resolve(defaultLocalePath);
+            
+            // Check if it's a file or directory
+            if (!File.Exists(resolved) && !Directory.Exists(resolved))
             {
-                var defaultLocalePath = resourcePath.Replace("${locale}", manifest.Localization.DefaultLocale, StringComparison.OrdinalIgnoreCase);
-                var resolved = Resolve(defaultLocalePath);
-                
-                // Check if it's a file or directory
-                if (!File.Exists(resolved) && !Directory.Exists(resolved))
-                {
-                    errors.Add($"Missing localization resources for default locale: {defaultLocalePath}");
-                }
+                errors.Add($"Missing localization resources for default locale: {defaultLocalePath}");
             }
         }
 

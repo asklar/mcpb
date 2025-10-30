@@ -76,8 +76,8 @@ public class McpbUserConfigOption
 
 public class McpbManifestLocalization
 {
-    [JsonPropertyName("resources")] public string Resources { get; set; } = string.Empty;
-    [JsonPropertyName("default_locale")] public string DefaultLocale { get; set; } = string.Empty;
+    [JsonPropertyName("resources")] public string? Resources { get; set; }
+    [JsonPropertyName("default_locale")] public string? DefaultLocale { get; set; }
 }
 
 public class McpbManifestIcon

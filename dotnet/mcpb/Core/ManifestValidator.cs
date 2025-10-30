@@ -119,14 +119,14 @@ public static class ManifestValidator
 
         if (m.Localization != null)
         {
-            if (string.IsNullOrWhiteSpace(m.Localization.Resources))
-                issues.Add(new("localization.resources", "resources is required when localization is present"));
-            else if (!m.Localization.Resources.Contains("${locale}", StringComparison.OrdinalIgnoreCase))
+            // Resources is optional; default is "mcpb-resources/${locale}.json"
+            var resources = m.Localization.Resources ?? "mcpb-resources/${locale}.json";
+            if (!resources.Contains("${locale}", StringComparison.OrdinalIgnoreCase))
                 issues.Add(new("localization.resources", "resources must include a \"${locale}\" placeholder"));
 
-            if (string.IsNullOrWhiteSpace(m.Localization.DefaultLocale))
-                issues.Add(new("localization.default_locale", "default_locale is required when localization is present"));
-            else if (!Regex.IsMatch(m.Localization.DefaultLocale, "^[A-Za-z0-9]{2,8}(?:-[A-Za-z0-9]{1,8})*$"))
+            // DefaultLocale is optional; default is "en-US"
+            var defaultLocale = m.Localization.DefaultLocale ?? "en-US";
+            if (!Regex.IsMatch(defaultLocale, "^[A-Za-z0-9]{2,8}(?:-[A-Za-z0-9]{1,8})*$"))
                 issues.Add(new("localization.default_locale", "default_locale must be a valid BCP 47 locale identifier"));
         }
 
