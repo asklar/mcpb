@@ -98,11 +98,11 @@ export const McpbManifestLocalizationSchema = z.strictObject({
 
 export const McpbManifestIconSchema = z.strictObject({
   src: z.string(),
-  sizes: z
+  size: z
     .string()
     .regex(
       ICON_SIZE_REGEX,
-      'sizes must be in the format "WIDTHxHEIGHT" (e.g., "16x16")',
+      'size must be in the format "WIDTHxHEIGHT" (e.g., "16x16")',
     ),
   theme: z.string().min(1, "theme cannot be empty when provided").optional(),
 });

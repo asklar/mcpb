@@ -263,12 +263,12 @@ describe("init functions", () => {
           icons: [
             {
               src: "assets/icons/icon-16-light.png",
-              sizes: "16x16",
+              size: "16x16",
               theme: "light",
             },
             {
               src: "assets/icons/icon-16-dark.png",
-              sizes: "16x16",
+              size: "16x16",
               theme: "dark",
             },
           ],
@@ -341,12 +341,12 @@ describe("init functions", () => {
         icons: [
           {
             src: "assets/icons/icon-16-light.png",
-            sizes: "16x16",
+            size: "16x16",
             theme: "light",
           },
           {
             src: "assets/icons/icon-16-dark.png",
-            sizes: "16x16",
+            size: "16x16",
             theme: "dark",
           },
         ],
