@@ -12,7 +12,7 @@ import path from "node:path";
 const distDir = path.join(import.meta.dirname, "../dist");
 const schemasDir = path.join(import.meta.dirname, "../schemas");
 
-// Versioned manifest schemas (for both dist/ and schemas/)
+// Versioned manifest schemas
 const versionedManifestSchemas = {
   "mcpb-manifest-v0.1": McpbManifestSchema_v0_1,
   "mcpb-manifest-v0.2": McpbManifestSchema_v0_2,
@@ -20,22 +20,16 @@ const versionedManifestSchemas = {
   "mcpb-manifest-latest": McpbManifestSchemaLatest,
 };
 
-// Legacy alias (only for schemas/ directory, not exported from package)
-const schemasOnlyAliases = {
-  "mcpb-manifest": McpbManifestSchemaLatest,
-};
-
 // Other schemas
 const otherSchemas = {
   "mcpb-signature-info": McpbSignatureInfoSchema,
 };
 
-// Generate versioned schemas and other schemas to dist/
+const allSchemas = { ...versionedManifestSchemas, ...otherSchemas };
+
+// Generate all schemas to dist/
 await fs.mkdir(distDir, { recursive: true });
-for (const [key, schema] of Object.entries({
-  ...versionedManifestSchemas,
-  ...otherSchemas,
-})) {
+for (const [key, schema] of Object.entries(allSchemas)) {
   const jsonSchema = zodToJsonSchema(schema);
   const filePath = path.join(distDir, `${key}.schema.json`);
   await fs.writeFile(filePath, JSON.stringify(jsonSchema, null, 2), {
@@ -43,12 +37,9 @@ for (const [key, schema] of Object.entries({
   });
 }
 
-// Generate all manifest schemas to schemas/ (including legacy alias)
+// Generate all versioned manifest schemas to schemas/
 await fs.mkdir(schemasDir, { recursive: true });
-for (const [key, schema] of Object.entries({
-  ...versionedManifestSchemas,
-  ...schemasOnlyAliases,
-})) {
+for (const [key, schema] of Object.entries(versionedManifestSchemas)) {
   const jsonSchema = zodToJsonSchema(schema);
   const filePath = path.join(schemasDir, `${key}.schema.json`);
   await fs.writeFile(filePath, JSON.stringify(jsonSchema, null, 2), {
