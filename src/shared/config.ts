@@ -1,6 +1,6 @@
 import type {
   Logger,
-  McpbManifestLatest,
+  McpbManifest,
   McpbUserConfigValues,
   McpServerConfig,
 } from "../types.js";
@@ -85,7 +85,7 @@ export function replaceVariables(
 }
 
 interface GetMcpConfigForManifestOptions {
-  manifest: McpbManifestLatest;
+  manifest: McpbManifest;
   extensionPath: string;
   systemDirs: Record<string, string>;
   userConfig: McpbUserConfigValues;
@@ -179,7 +179,7 @@ export async function getMcpConfigForManifest(
 }
 
 interface HasRequiredConfigMissingOptions {
-  manifest: McpbManifestLatest;
+  manifest: McpbManifest;
   userConfig?: McpbUserConfigValues;
 }
 

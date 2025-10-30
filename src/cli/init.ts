@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import { basename, join, resolve } from "path";
 
 import { LATEST_MANIFEST_VERSION } from "../shared/constants.js";
-import type { McpbManifest } from "../types.js";
+import type { McpbManifestLatest } from "../types.js";
 
 interface PackageJson {
   name?: string;
@@ -878,7 +878,7 @@ export function buildManifest(
     resources: string;
     default_locale: string;
   },
-): McpbManifest {
+): McpbManifestLatest {
   const { name, displayName, version, description, authorName } = basicInfo;
   const { authorEmail, authorUrl } = authorInfo;
   const { serverType, entryPoint, mcp_config } = serverConfig;
