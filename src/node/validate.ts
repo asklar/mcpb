@@ -59,7 +59,7 @@ function validateIcon(
   // Check for ${__dirname} variable (error - doesn't work)
   if (hasVariableSubstitution) {
     errors.push(
-      'Icon path should not use ${__dirname} variable substitution. ' +
+      "Icon path should not use ${__dirname} variable substitution. " +
         'Use a simple relative path like "icon.png" instead of "${__dirname}/icon.png".',
     );
   }

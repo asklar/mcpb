@@ -1,7 +1,6 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import { join } from "node:path";
-import path from "node:path";
 
 describe("Icon Validation", () => {
   const cliPath = join(__dirname, "../dist/cli/cli.js");
@@ -18,20 +17,81 @@ describe("Icon Validation", () => {
 
     // Create a valid PNG file (1x1 transparent pixel)
     const validPngBuffer = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG signature
-      0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
-      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 dimensions
-      0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
-      0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41,
-      0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
-      0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00,
-      0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
-      0x42, 0x60, 0x82,
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a, // PNG signature
+      0x00,
+      0x00,
+      0x00,
+      0x0d,
+      0x49,
+      0x48,
+      0x44,
+      0x52, // IHDR chunk
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      0x01, // 1x1 dimensions
+      0x08,
+      0x06,
+      0x00,
+      0x00,
+      0x00,
+      0x1f,
+      0x15,
+      0xc4,
+      0x89,
+      0x00,
+      0x00,
+      0x00,
+      0x0a,
+      0x49,
+      0x44,
+      0x41,
+      0x54,
+      0x78,
+      0x9c,
+      0x63,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x05,
+      0x00,
+      0x01,
+      0x0d,
+      0x0a,
+      0x2d,
+      0xb4,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x49,
+      0x45,
+      0x4e,
+      0x44,
+      0xae,
+      0x42,
+      0x60,
+      0x82,
     ]);
     fs.writeFileSync(join(testFixturesDir, "valid-icon.png"), validPngBuffer);
 
     // Create an invalid (non-PNG) file
-    fs.writeFileSync(join(testFixturesDir, "invalid-icon.jpg"), "Not a PNG file");
+    fs.writeFileSync(
+      join(testFixturesDir, "invalid-icon.jpg"),
+      "Not a PNG file",
+    );
 
     // Create test manifests
     createTestManifest("valid-local-icon.json", {
@@ -92,7 +152,7 @@ describe("Icon Validation", () => {
 
     fs.writeFileSync(
       join(testFixturesDir, filename),
-      JSON.stringify(manifest, null, 2)
+      JSON.stringify(manifest, null, 2),
     );
   }
 
@@ -135,7 +195,10 @@ describe("Icon Validation", () => {
     });
 
     it("should reject icons with ${__dirname} variable", () => {
-      const manifestPath = join(testFixturesDir, "invalid-dirname-variable.json");
+      const manifestPath = join(
+        testFixturesDir,
+        "invalid-dirname-variable.json",
+      );
 
       expect(() => {
         execSync(`node ${cliPath} validate ${manifestPath}`, {
@@ -149,8 +212,9 @@ describe("Icon Validation", () => {
           encoding: "utf-8",
           stdio: "pipe",
         });
-      } catch (error: any) {
-        const output = error.stdout?.toString() || "";
+      } catch (error: unknown) {
+        const execError = error as { stdout?: Buffer; stderr?: Buffer };
+        const output = execError.stdout?.toString() || "";
         expect(output).toContain("Icon validation failed");
         expect(output).toContain("${__dirname}");
         expect(output).toContain("simple relative path");
@@ -172,8 +236,9 @@ describe("Icon Validation", () => {
           encoding: "utf-8",
           stdio: "pipe",
         });
-      } catch (error: any) {
-        const output = error.stdout?.toString() || "";
+      } catch (error: unknown) {
+        const execError = error as { stdout?: Buffer; stderr?: Buffer };
+        const output = execError.stdout?.toString() || "";
         expect(output).toContain("Icon validation failed");
         expect(output).toContain("relative to the bundle root");
       }
@@ -194,8 +259,9 @@ describe("Icon Validation", () => {
           encoding: "utf-8",
           stdio: "pipe",
         });
-      } catch (error: any) {
-        const output = error.stdout?.toString() || "";
+      } catch (error: unknown) {
+        const execError = error as { stdout?: Buffer; stderr?: Buffer };
+        const output = execError.stdout?.toString() || "";
         expect(output).toContain("Icon validation failed");
         expect(output).toContain("not found");
       }
@@ -216,8 +282,9 @@ describe("Icon Validation", () => {
           encoding: "utf-8",
           stdio: "pipe",
         });
-      } catch (error: any) {
-        const output = error.stdout?.toString() || "";
+      } catch (error: unknown) {
+        const execError = error as { stdout?: Buffer; stderr?: Buffer };
+        const output = execError.stdout?.toString() || "";
         expect(output).toContain("Icon validation failed");
         expect(output).toContain("PNG format");
       }
@@ -233,15 +300,12 @@ describe("Icon Validation", () => {
       }
 
       const validPngBuffer = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-        0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-        0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
-        0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41,
-        0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
-        0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00,
-        0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
-        0x42, 0x60, 0x82,
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+        0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
       ]);
       fs.writeFileSync(join(assetsDir, "icon.png"), validPngBuffer);
 
@@ -249,7 +313,10 @@ describe("Icon Validation", () => {
         icon: "assets/icon.png",
       });
 
-      const manifestPath = join(testFixturesDir, "valid-subdirectory-icon.json");
+      const manifestPath = join(
+        testFixturesDir,
+        "valid-subdirectory-icon.json",
+      );
       const result = execSync(`node ${cliPath} validate ${manifestPath}`, {
         encoding: "utf-8",
       });
@@ -258,6 +325,4 @@ describe("Icon Validation", () => {
       expect(result).toContain("Icon validation passed");
     });
   });
-
 });
-
