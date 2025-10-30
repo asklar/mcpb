@@ -204,8 +204,6 @@ internal static class ManifestCommandHelpers
                 localizableProperties.Add("long_description");
             if (rootProps.Contains("author") && !string.IsNullOrWhiteSpace(manifest.Author?.Name)) 
                 localizableProperties.Add("author.name");
-            if (rootProps.Contains("license") && !string.IsNullOrWhiteSpace(manifest.License)) 
-                localizableProperties.Add("license");
             if (rootProps.Contains("keywords") && manifest.Keywords != null && manifest.Keywords.Count > 0) 
                 localizableProperties.Add("keywords");
         }
@@ -216,7 +214,6 @@ internal static class ManifestCommandHelpers
             if (!string.IsNullOrWhiteSpace(manifest.Description)) localizableProperties.Add("description");
             if (!string.IsNullOrWhiteSpace(manifest.LongDescription)) localizableProperties.Add("long_description");
             if (!string.IsNullOrWhiteSpace(manifest.Author?.Name)) localizableProperties.Add("author.name");
-            if (!string.IsNullOrWhiteSpace(manifest.License) && manifest.License != "MIT") localizableProperties.Add("license"); // Don't check default
             if (manifest.Keywords != null && manifest.Keywords.Count > 0) localizableProperties.Add("keywords");
         }
 
