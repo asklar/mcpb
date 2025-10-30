@@ -76,12 +76,12 @@ describe("McpbManifestSchema", () => {
       icons: [
         {
           src: "assets/icons/icon-16-light.png",
-          sizes: "16x16",
+          size: "16x16",
           theme: "light",
         },
         {
           src: "assets/icons/icon-16-dark.png",
-          sizes: "16x16",
+          size: "16x16",
           theme: "dark",
         },
       ],
@@ -320,7 +320,7 @@ describe("McpbManifestSchema", () => {
     it("rejects icons with invalid size format", () => {
       const manifest = {
         ...base,
-        icons: [{ src: "assets/icon.png", sizes: "16", theme: "light" }],
+        icons: [{ src: "assets/icon.png", size: "16", theme: "light" }],
       };
       const result = McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(false);
@@ -329,7 +329,7 @@ describe("McpbManifestSchema", () => {
     it("allows icons without theme", () => {
       const manifest = {
         ...base,
-        icons: [{ src: "assets/icon.png", sizes: "128x128" }],
+        icons: [{ src: "assets/icon.png", size: "128x128" }],
       };
       const result = McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(true);

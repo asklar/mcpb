@@ -93,12 +93,12 @@ A full `manifest.json` with most of the optional fields looks like this:
   "icons": [
     {
       "src": "assets/icons/icon-16-light.png",
-      "sizes": "16x16",
+      "size": "16x16",
       "theme": "light"
     },
     {
       "src": "assets/icons/icon-16-dark.png",
-      "sizes": "16x16",
+      "size": "16x16",
       "theme": "dark"
     }
   ],
@@ -237,7 +237,7 @@ A full `manifest.json` with most of the optional fields looks like this:
 ### Optional Fields
 
 - **icon**: Path to a png icon file, either relative in the package or a `https://` url.
-- **icons**: Array of icon descriptors (`src`, `sizes`, optional `theme`) for light/dark or size-specific assets.
+- **icons**: Array of icon descriptors (`src`, `size`, optional `theme`) for light/dark or size-specific assets.
 - 🌎 **display_name**: Human-friendly name for UI display. This field is localizable.
 - 🌎 **long_description**: Detailed description for extension stores, markdown. This field is localizable.
 - **repository**: Source code repository information (type and url).
@@ -288,12 +288,12 @@ Use the `icons` array when you need multiple icon variants (different sizes or t
 
 ```json
 "icons": [
-  { "src": "assets/icons/icon-16-light.png", "sizes": "16x16", "theme": "light" },
-  { "src": "assets/icons/icon-16-dark.png", "sizes": "16x16", "theme": "dark" }
+  { "src": "assets/icons/icon-16-light.png", "size": "16x16", "theme": "light" },
+  { "src": "assets/icons/icon-16-dark.png", "size": "16x16", "theme": "dark" }
 ]
 ```
 
-- `sizes` must be in `WIDTHxHEIGHT` form (e.g., `128x128`).
+- `size` must be in `WIDTHxHEIGHT` form (e.g., `128x128`).
 - `theme` is optional; use values like `light`, `dark`, or platform-specific labels (e.g., `high-contrast`).
 - The legacy `icon` field remains supported for single assets—clients use it when `icons` is omitted.
 

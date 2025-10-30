@@ -456,7 +456,7 @@ export async function promptVisualAssets() {
 
   const icons: Array<{
     src: string;
-    sizes: string;
+    size: string;
     theme?: string;
   }> = [];
 
@@ -472,7 +472,7 @@ export async function promptVisualAssets() {
         },
       });
 
-      const iconSizes = await input({
+      const iconSize = await input({
         message: "Icon size (e.g., 16x16):",
         validate: (value) => {
           if (!value.trim()) return "Icon size is required";
@@ -490,7 +490,7 @@ export async function promptVisualAssets() {
 
       icons.push({
         src: iconSrc,
-        sizes: iconSizes,
+        size: iconSize,
         ...(iconTheme.trim() ? { theme: iconTheme.trim() } : {}),
       });
 
@@ -825,7 +825,7 @@ export function buildManifest(
     icon: string;
     icons: Array<{
       src: string;
-      sizes: string;
+      size: string;
       theme?: string;
     }>;
     screenshots: string[];

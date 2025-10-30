@@ -88,7 +88,7 @@
           "src": {
             "type": "string"
           },
-          "sizes": {
+          "size": {
             "type": "string",
             "pattern": "^\\d+x\\d+$"
           },
@@ -99,7 +99,7 @@
         },
         "required": [
           "src",
-          "sizes"
+          "size"
         ],
         "additionalProperties": false
       }
