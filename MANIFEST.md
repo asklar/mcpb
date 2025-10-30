@@ -17,7 +17,7 @@ A basic `manifest.json` with just the required fields looks like this:
   "description": "A simple MCP extension", // Brief description of what the extension does
   "author": {
     // Author information (required)
-    "name": "Extension Author" // Author's name (required field)
+    "name": "Extension Author", // Author's name (required field)
   },
   "server": {
     // Server configuration (required)
@@ -28,10 +28,10 @@ A basic `manifest.json` with just the required fields looks like this:
       "command": "node", // Command to run the server
       "args": [
         // Arguments passed to the command
-        "${__dirname}/server/index.js" // ${__dirname} is replaced with the extension's directory
-      ]
-    }
-  }
+        "${__dirname}/server/index.js", // ${__dirname} is replaced with the extension's directory
+      ],
+    },
+  },
 }
 ```
 
@@ -212,12 +212,12 @@ A full `manifest.json` with most of the optional fields looks like this:
                       "type": "string"
                     }
                   }
-                },
+                }
               }
             }
           ]
         }
-      },
+      }
     }
   }
 }
@@ -254,7 +254,7 @@ A full `manifest.json` with most of the optional fields looks like this:
 - **privacy_policies**: Array of URLs to privacy policies for external services that handle user data. Required when the extension connects to external services (first- or third-party) that process user data. Each URL should link to the respective service's privacy policy document.
 - **compatibility**: Compatibility requirements (client app version, platforms, and runtime versions).
 - **user_config**: User-configurable options for the extension (see User Configuration section).
-- **_meta**: Platform-specific client integration metadata (e.g., Windows `package_family_name`, macOS bundle identifiers) enabling tighter OS/app store integration. The keys in the `_meta` object are reverse-DNS namespaced, and the values are a dictionary of platform-specific metadata.
+- **\_meta**: Platform-specific client integration metadata (e.g., Windows `package_family_name`, macOS bundle identifiers) enabling tighter OS/app store integration. The keys in the `_meta` object are reverse-DNS namespaced, and the values are a dictionary of platform-specific metadata.
 - **localization**: Location of translated strings for user-facing fields (`resources` path containing a `${locale}` placeholder and `default_locale`).
 
 ### Localization
@@ -268,15 +268,16 @@ Provide localized strings without bloating the manifest by pointing to external 
 }
 ```
 
-- `resources` must include a `${locale}` placeholder. Clients resolve it relative to the server install directory. 
+- `resources` must include a `${locale}` placeholder. Clients resolve it relative to the server install directory.
   - This property is optional, and its default value is **`mcpb-resources/${locale}.json`**.
 - `default_locale` must be a valid [BCP 47](https://www.rfc-editor.org/rfc/bcp/bcp47.txt) identifier such as `en-US` or `zh-Hans`.
   - This property is optional, and its default value is `en-US`.
 - Values for the default locale stay in the main manifest; localized files only need to contain overrides.
 
-For tools and prompts, the descriptions are also localizable. 
+For tools and prompts, the descriptions are also localizable.
 
 #### Client guidelines
+
 - if a client wants to show tool or prompt descriptions in their UI, the client should look for the locale-specific description override in the corresponding per-locale file.
 - clients should only look for tools/prompts present in the manifest.json, i.e. prompts and tools that only exist in the per-locale file should be ignored.
 - Clients should apply locale fallbacks if the client/user locale is not represented by the server. For example, if the user is in the `es-UY` locale but the server does not include that per-locale file, the client should look for an approrpiate fallback, e.g. `es-MX` or `es-ES`, or fall back to the values in the manifest.
@@ -712,4 +713,3 @@ The `_generated` fields:
 - **prompts_generated**: Server generates additional prompts beyond those listed (default: false)
 
 This helps implementing apps understand that querying the server at runtime will reveal more capabilities than what's declared in the manifest.
-
