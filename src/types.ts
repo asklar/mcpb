@@ -1,5 +1,6 @@
 import type * as z from "zod";
 
+import type { McpbManifestSchema as McpbManifestSchemaAny } from "./schemas/any.js";
 import type {
   McpbManifestAuthorSchema,
   McpbManifestCompatibilitySchema,
@@ -15,7 +16,6 @@ import type {
   McpbUserConfigValuesSchema,
   McpServerConfigSchema,
 } from "./schemas/latest.js";
-import type { McpbManifestSchema as McpbManifestSchemaAny } from "./schemas/any.js";
 
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 
