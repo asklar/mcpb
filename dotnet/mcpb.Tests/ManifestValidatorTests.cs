@@ -96,4 +96,140 @@ public class ManifestValidatorTests
         var warning = Assert.Single(issues, i => i.Path == "prompts[0].text");
         Assert.Equal(ValidationSeverity.Warning, warning.Severity);
     }
+
+    [Fact]
+    public void ValidLocalization_Passes()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Localization = new McpbManifestLocalization
+        {
+            Resources = "locales/${locale}/messages.json",
+            DefaultLocale = "en-US"
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void LocalizationMissingResources_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Localization = new McpbManifestLocalization
+        {
+            Resources = "",
+            DefaultLocale = "en-US"
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "localization.resources");
+    }
+
+    [Fact]
+    public void LocalizationResourcesWithoutPlaceholder_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Localization = new McpbManifestLocalization
+        {
+            Resources = "locales/messages.json",
+            DefaultLocale = "en-US"
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "localization.resources" && i.Message.Contains("placeholder"));
+    }
+
+    [Fact]
+    public void LocalizationMissingDefaultLocale_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Localization = new McpbManifestLocalization
+        {
+            Resources = "locales/${locale}/messages.json",
+            DefaultLocale = ""
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "localization.default_locale");
+    }
+
+    [Fact]
+    public void LocalizationInvalidDefaultLocale_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Localization = new McpbManifestLocalization
+        {
+            Resources = "locales/${locale}/messages.json",
+            DefaultLocale = "invalid locale"
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "localization.default_locale" && i.Message.Contains("BCP 47"));
+    }
+
+    [Fact]
+    public void ValidIcons_Passes()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Icons = new List<McpbManifestIcon>
+        {
+            new() { Src = "icon-16.png", Sizes = "16x16" },
+            new() { Src = "icon-32.png", Sizes = "32x32", Theme = "light" }
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void IconMissingSrc_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Icons = new List<McpbManifestIcon>
+        {
+            new() { Src = "", Sizes = "16x16" }
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "icons[0].src");
+    }
+
+    [Fact]
+    public void IconMissingSizes_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Icons = new List<McpbManifestIcon>
+        {
+            new() { Src = "icon.png", Sizes = "" }
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "icons[0].sizes");
+    }
+
+    [Fact]
+    public void IconInvalidSizesFormat_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Icons = new List<McpbManifestIcon>
+        {
+            new() { Src = "icon.png", Sizes = "16" }
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "icons[0].sizes" && i.Message.Contains("WIDTHxHEIGHT"));
+    }
+
+    [Fact]
+    public void IconEmptyTheme_Fails()
+    {
+        var m = BaseManifest();
+        m.ManifestVersion = "0.3";
+        m.Icons = new List<McpbManifestIcon>
+        {
+            new() { Src = "icon.png", Sizes = "16x16", Theme = "" }
+        };
+        var issues = ManifestValidator.Validate(m);
+        Assert.Contains(issues, i => i.Path == "icons[0].theme" && i.Message.Contains("empty"));
+    }
 }

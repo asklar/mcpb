@@ -13,6 +13,8 @@ namespace Mcpb.Json;
 [JsonSerializable(typeof(McpbStaticResponses))]
 [JsonSerializable(typeof(McpbInitializeResult))]
 [JsonSerializable(typeof(McpbToolsListResult))]
+[JsonSerializable(typeof(McpbManifestLocalization))]
+[JsonSerializable(typeof(McpbManifestIcon))]
 [JsonSerializable(typeof(System.Text.Json.JsonElement))]
 [JsonSerializable(typeof(int))]
 [JsonSerializable(typeof(long))]

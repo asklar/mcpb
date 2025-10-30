@@ -147,6 +147,36 @@ internal static class ManifestCommandHelpers
             }
         }
 
+        if (manifest.Icons != null)
+        {
+            for (int i = 0; i < manifest.Icons.Count; i++)
+            {
+                var icon = manifest.Icons[i];
+                if (!string.IsNullOrWhiteSpace(icon.Src))
+                {
+                    CheckFile(icon.Src, $"icons[{i}]");
+                }
+            }
+        }
+
+        if (manifest.Localization != null && !string.IsNullOrWhiteSpace(manifest.Localization.Resources))
+        {
+            // Check if the localization resources path exists
+            // The resources path should contain a ${locale} placeholder, so we need to check with the default_locale
+            var resourcePath = manifest.Localization.Resources;
+            if (!string.IsNullOrWhiteSpace(manifest.Localization.DefaultLocale))
+            {
+                var defaultLocalePath = resourcePath.Replace("${locale}", manifest.Localization.DefaultLocale, StringComparison.OrdinalIgnoreCase);
+                var resolved = Resolve(defaultLocalePath);
+                
+                // Check if it's a file or directory
+                if (!File.Exists(resolved) && !Directory.Exists(resolved))
+                {
+                    errors.Add($"Missing localization resources for default locale: {defaultLocalePath}");
+                }
+            }
+        }
+
         return errors;
     }
 
