@@ -1,5 +1,6 @@
 import type * as z from "zod";
 
+import type { McpbManifestSchema as McpbManifestSchemaAny } from "./schemas/any.js";
 import type {
   McpbManifestAuthorSchema,
   McpbManifestCompatibilitySchema,
@@ -46,7 +47,17 @@ export type McpbUserConfigurationOption = z.infer<
 
 export type McpbUserConfigValues = z.infer<typeof McpbUserConfigValuesSchema>;
 
-export type McpbManifest = z.infer<typeof McpbManifestSchema>;
+/**
+ * McpbManifest type that accepts any supported manifest version
+ * This is the default manifest type that should be used for maximum compatibility.
+ */
+export type McpbManifest = z.infer<typeof McpbManifestSchemaAny>;
+
+/**
+ * McpbManifest type for the latest manifest version only
+ * Use this when you specifically need the latest version.
+ */
+export type McpbManifestLatest = z.infer<typeof McpbManifestSchema>;
 
 /**
  * Information about a MCPB package signature
