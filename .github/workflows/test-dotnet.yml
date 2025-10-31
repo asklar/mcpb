@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - user/asklar/dotnet
+      - dotnet
     paths:
       - 'dotnet/**'
       - 'examples/**'
