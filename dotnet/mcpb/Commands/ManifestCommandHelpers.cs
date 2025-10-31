@@ -245,36 +245,42 @@ internal static class ManifestCommandHelpers
                 }
 
                 var localeJson = File.ReadAllText(filePath);
-                using var localeDoc = JsonDocument.Parse(localeJson);
-                var root = localeDoc.RootElement;
+                var localeResource = JsonSerializer.Deserialize<McpbLocalizationResource>(localeJson, McpbJsonContext.Default.McpbLocalizationResource);
+                
+                if (localeResource == null)
+                {
+                    errors.Add($"Failed to parse locale file: {filePath}");
+                    continue;
+                }
 
                 // Check for localizable properties
                 foreach (var prop in localizableProperties)
                 {
-                    if (prop == "author.name")
+                    var isMissing = prop switch
                     {
-                        if (!root.TryGetProperty("author", out var authorElem) || 
-                            !authorElem.TryGetProperty("name", out _))
-                        {
-                            errors.Add($"Missing localization for '{prop}' in {locale} ({filePath})");
-                        }
-                    }
-                    else if (!root.TryGetProperty(prop, out _))
+                        "display_name" => string.IsNullOrWhiteSpace(localeResource.DisplayName),
+                        "description" => string.IsNullOrWhiteSpace(localeResource.Description),
+                        "long_description" => string.IsNullOrWhiteSpace(localeResource.LongDescription),
+                        "author.name" => localeResource.Author == null || string.IsNullOrWhiteSpace(localeResource.Author.Name),
+                        "keywords" => localeResource.Keywords == null || localeResource.Keywords.Count == 0,
+                        _ => false
+                    };
+
+                    if (isMissing)
                     {
                         errors.Add($"Missing localization for '{prop}' in {locale} ({filePath})");
                     }
                 }
 
                 // Check tool descriptions
-                if (toolsWithDescriptions.Count > 0 && root.TryGetProperty("tools", out var toolsElem) && toolsElem.ValueKind == JsonValueKind.Array)
+                if (toolsWithDescriptions.Count > 0)
                 {
-                    var localizedTools = toolsElem.EnumerateArray().ToList();
+                    var localizedTools = localeResource.Tools ?? new List<McpbLocalizationResourceTool>();
                     foreach (var tool in toolsWithDescriptions)
                     {
                         var found = localizedTools.Any(t => 
-                            t.TryGetProperty("name", out var nameElem) && 
-                            nameElem.GetString() == tool.Name &&
-                            t.TryGetProperty("description", out _));
+                            t.Name == tool.Name && 
+                            !string.IsNullOrWhiteSpace(t.Description));
                         
                         if (!found)
                         {
@@ -284,15 +290,14 @@ internal static class ManifestCommandHelpers
                 }
 
                 // Check prompt descriptions
-                if (promptsWithDescriptions.Count > 0 && root.TryGetProperty("prompts", out var promptsElem) && promptsElem.ValueKind == JsonValueKind.Array)
+                if (promptsWithDescriptions.Count > 0)
                 {
-                    var localizedPrompts = promptsElem.EnumerateArray().ToList();
+                    var localizedPrompts = localeResource.Prompts ?? new List<McpbLocalizationResourcePrompt>();
                     foreach (var prompt in promptsWithDescriptions)
                     {
                         var found = localizedPrompts.Any(p => 
-                            p.TryGetProperty("name", out var nameElem) && 
-                            nameElem.GetString() == prompt.Name &&
-                            p.TryGetProperty("description", out _));
+                            p.Name == prompt.Name && 
+                            !string.IsNullOrWhiteSpace(p.Description));
                         
                         if (!found)
                         {

@@ -87,6 +87,34 @@ public class McpbManifestIcon
     [JsonPropertyName("theme")] public string? Theme { get; set; }
 }
 
+public class McpbLocalizationResourceAuthor
+{
+    [JsonPropertyName("name")] public string? Name { get; set; }
+}
+
+public class McpbLocalizationResourceTool
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("description")] public string? Description { get; set; }
+}
+
+public class McpbLocalizationResourcePrompt
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("description")] public string? Description { get; set; }
+}
+
+public class McpbLocalizationResource
+{
+    [JsonPropertyName("display_name")] public string? DisplayName { get; set; }
+    [JsonPropertyName("description")] public string? Description { get; set; }
+    [JsonPropertyName("long_description")] public string? LongDescription { get; set; }
+    [JsonPropertyName("author")] public McpbLocalizationResourceAuthor? Author { get; set; }
+    [JsonPropertyName("keywords")] public List<string>? Keywords { get; set; }
+    [JsonPropertyName("tools")] public List<McpbLocalizationResourceTool>? Tools { get; set; }
+    [JsonPropertyName("prompts")] public List<McpbLocalizationResourcePrompt>? Prompts { get; set; }
+}
+
 public class McpbInitializeResult
 {
     [JsonPropertyName("protocolVersion")] public string? ProtocolVersion { get; set; }
