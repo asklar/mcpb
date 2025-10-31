@@ -118,4 +118,83 @@ public class CliPackFileValidationTests
         Assert.Contains("demo@", stdout);
         Assert.DoesNotContain("Missing", stderr);
     }
+
+    [Fact]
+    public void Pack_MissingIconsFile_Fails()
+    {
+        var dir = CreateTempDir();
+        File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
+        var manifest = BaseManifest();
+        manifest.ManifestVersion = "0.3";
+        manifest.Icons = new List<Mcpb.Core.McpbManifestIcon>
+        {
+            new() { Src = "icon-16.png", Size = "16x16" }
+        };
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
+        Assert.NotEqual(0, code);
+        Assert.Contains("Missing icons[0] file", stderr);
+    }
+
+    [Fact]
+    public void Pack_IconsFilePresent_Succeeds()
+    {
+        var dir = CreateTempDir();
+        File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "icon-16.png"), "fake16");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
+        var manifest = BaseManifest();
+        manifest.ManifestVersion = "0.3";
+        manifest.Screenshots = null; // Remove screenshots requirement for this test
+        manifest.Icons = new List<Mcpb.Core.McpbManifestIcon>
+        {
+            new() { Src = "icon-16.png", Size = "16x16" }
+        };
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
+        Assert.True(code == 0, $"Pack failed with code {code}. Stderr: {stderr}");
+        Assert.Contains("demo@", stdout);
+    }
+
+    [Fact]
+    public void Pack_MissingLocalizationResources_Fails()
+    {
+        var dir = CreateTempDir();
+        File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
+        var manifest = BaseManifest();
+        manifest.ManifestVersion = "0.3";
+        manifest.Localization = new Mcpb.Core.McpbManifestLocalization
+        {
+            Resources = "locales/${locale}/messages.json",
+            DefaultLocale = "en-US"
+        };
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        var (code, _, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
+        Assert.NotEqual(0, code);
+        Assert.Contains("Missing localization resources", stderr);
+    }
+
+    [Fact]
+    public void Pack_LocalizationResourcesPresent_Succeeds()
+    {
+        var dir = CreateTempDir();
+        File.WriteAllText(Path.Combine(dir, "icon.png"), "fake");
+        File.WriteAllText(Path.Combine(dir, "server", "index.js"), "// js");
+        Directory.CreateDirectory(Path.Combine(dir, "locales", "en-US"));
+        File.WriteAllText(Path.Combine(dir, "locales", "en-US", "messages.json"), "{}");
+        var manifest = BaseManifest();
+        manifest.ManifestVersion = "0.3";
+        manifest.Screenshots = null; // Remove screenshots requirement for this test
+        manifest.Localization = new Mcpb.Core.McpbManifestLocalization
+        {
+            Resources = "locales/${locale}/messages.json",
+            DefaultLocale = "en-US"
+        };
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--no-discover");
+        Assert.True(code == 0, $"Pack failed with code {code}. Stderr: {stderr}");
+        Assert.Contains("demo@", stdout);
+    }
 }
