@@ -1,5 +1,26 @@
 name: Publish .NET Tool
 
+# This workflow publishes the .NET tool to NuGet using Trusted Publishing (OIDC).
+# 
+# Setup required on NuGet.org:
+# 1. Go to https://www.nuget.org/account/apikeys
+# 2. Click "Add" to create a new API key
+# 3. Select "Push only new package versions" for the package Mcpb.Cli
+# 4. Under "Package owner", select your account
+# 5. Under "Packages", select "Mcpb.Cli" (or use glob pattern)
+# 6. Under "Source", enable "Trusted Publishing" and configure:
+#    - Owner: asklar
+#    - Repository: mcpb
+#    - Workflow: publish-dotnet.yml
+#    - Environment: nuget (optional but recommended)
+# 
+# Setup required in GitHub:
+# 1. Create an environment named "nuget" in repository settings
+# 2. Add protection rules if desired (e.g., required reviewers)
+# 
+# The workflow will run automatically when the version in dotnet/mcpb/mcpb.csproj is changed
+# and pushed to the main branch, or it can be triggered manually.
+
 on:
   workflow_dispatch:
   push:
