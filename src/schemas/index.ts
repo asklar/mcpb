@@ -10,6 +10,7 @@ export * as vLatest from "./latest.js";
 export {
   MANIFEST_VERSION as LATEST_MANIFEST_VERSION,
   McpbManifestSchema as LatestMcpbManifestSchema,
+  McpbManifestSchema, // backwards compatibility - exports latest schema
 } from "./latest.js";
 
 /**
