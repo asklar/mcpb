@@ -3,16 +3,14 @@ name: Publish .NET Tool
 # This workflow publishes the .NET tool to NuGet using Trusted Publishing (OIDC).
 # 
 # Setup required on NuGet.org:
-# 1. Go to https://www.nuget.org/account/apikeys
-# 2. Click "Add" to create a new API key
-# 3. Select "Push only new package versions" for the package Mcpb.Cli
-# 4. Under "Package owner", select your account
-# 5. Under "Packages", select "Mcpb.Cli" (or use glob pattern)
-# 6. Under "Source", enable "Trusted Publishing" and configure:
-#    - Owner: asklar
-#    - Repository: mcpb
-#    - Workflow: publish-dotnet.yml
-#    - Environment: nuget (optional but recommended)
+# 1. Navigate to your package page at https://www.nuget.org/packages/Mcpb.Cli/
+# 2. Go to "Manage Package" and select "Publishing" or "Trusted publishers"
+# 3. Click "Add" to configure a new trusted publisher
+# 4. Configure the GitHub Actions OIDC settings:
+#    - Subject Repository: asklar/mcpb
+#    - Subject Workflow: .github/workflows/publish-dotnet.yml
+#    - Subject Environment: nuget (optional but recommended)
+# 5. Save the trusted publisher configuration
 # 
 # Setup required in GitHub:
 # 1. Create an environment named "nuget" in repository settings
@@ -66,9 +64,9 @@ jobs:
       - name: Pack
         run: |
           cd dotnet/mcpb
-          dotnet pack -c Release --no-build -o .
+          dotnet pack -c Release --no-build --output ./artifacts
       
       - name: Publish to NuGet
         run: |
           cd dotnet/mcpb
-          dotnet nuget push *.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push ./artifacts/*.nupkg --api-key oy2p --source https://api.nuget.org/v3/index.json --skip-duplicate
