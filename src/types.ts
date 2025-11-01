@@ -48,16 +48,20 @@ export type McpbUserConfigurationOption = z.infer<
 export type McpbUserConfigValues = z.infer<typeof McpbUserConfigValuesSchema>;
 
 /**
- * McpbManifest type that accepts any supported manifest version
- * This is the default manifest type that should be used for maximum compatibility.
- */
-export type McpbManifest = z.infer<typeof McpbManifestSchemaAny>;
-
-/**
  * McpbManifest type for the latest manifest version only
  * Use this when you specifically need the latest version.
  */
 export type McpbManifestLatest = z.infer<typeof McpbManifestSchema>;
+
+/**
+ * Alias for McpbManifestLatest for backwards compatibility.
+ */
+export type McpbManifest = McpbManifestLatest;
+
+/**
+ * McpbManifest type representing the union of all manifest versions
+ */
+export type McpbManifestAny = z.infer<typeof McpbManifestSchemaAny>;;
 
 /**
  * Information about a MCPB package signature
