@@ -1,0 +1,53 @@
+name: Publish .NET Tool
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dotnet/mcpb/mcpb.csproj'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to NuGet
+    runs-on: ubuntu-latest
+    environment: nuget
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: |
+          cd dotnet
+          dotnet restore
+      
+      - name: Build
+        run: |
+          cd dotnet
+          dotnet build -c Release --no-restore
+      
+      - name: Test
+        run: |
+          cd dotnet
+          dotnet test -c Release --no-build --verbosity normal
+      
+      - name: Pack
+        run: |
+          cd dotnet/mcpb
+          dotnet pack -c Release --no-build -o .
+      
+      - name: Publish to NuGet
+        run: |
+          cd dotnet/mcpb
+          dotnet nuget push *.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
