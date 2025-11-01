@@ -65,7 +65,15 @@ jobs:
         run: |
           cd dotnet/mcpb
           dotnet pack -c Release --no-build --output ./artifacts
-      
+      - name: Remove old v2 NuGet source if exists
+        run: dotnet nuget remove source nuget.org || true
+
+      - name: Add v3 NuGet source
+        run: dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org
+
+      - name: List NuGet sources (for debugging)
+        run: dotnet nuget list source
+  
       - name: Publish to NuGet
         run: |
           cd dotnet/mcpb
