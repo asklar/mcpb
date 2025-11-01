@@ -74,6 +74,47 @@ public class McpbUserConfigOption
     [JsonPropertyName("max")] public double? Max { get; set; }
 }
 
+public class McpbManifestLocalization
+{
+    [JsonPropertyName("resources")] public string? Resources { get; set; }
+    [JsonPropertyName("default_locale")] public string? DefaultLocale { get; set; }
+}
+
+public class McpbManifestIcon
+{
+    [JsonPropertyName("src")] public string Src { get; set; } = string.Empty;
+    [JsonPropertyName("size")] public string Size { get; set; } = string.Empty;
+    [JsonPropertyName("theme")] public string? Theme { get; set; }
+}
+
+public class McpbLocalizationResourceAuthor
+{
+    [JsonPropertyName("name")] public string? Name { get; set; }
+}
+
+public class McpbLocalizationResourceTool
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("description")] public string? Description { get; set; }
+}
+
+public class McpbLocalizationResourcePrompt
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("description")] public string? Description { get; set; }
+}
+
+public class McpbLocalizationResource
+{
+    [JsonPropertyName("display_name")] public string? DisplayName { get; set; }
+    [JsonPropertyName("description")] public string? Description { get; set; }
+    [JsonPropertyName("long_description")] public string? LongDescription { get; set; }
+    [JsonPropertyName("author")] public McpbLocalizationResourceAuthor? Author { get; set; }
+    [JsonPropertyName("keywords")] public List<string>? Keywords { get; set; }
+    [JsonPropertyName("tools")] public List<McpbLocalizationResourceTool>? Tools { get; set; }
+    [JsonPropertyName("prompts")] public List<McpbLocalizationResourcePrompt>? Prompts { get; set; }
+}
+
 public class McpbInitializeResult
 {
     [JsonPropertyName("protocolVersion")] public string? ProtocolVersion { get; set; }
@@ -115,7 +156,9 @@ public class McpbManifest
     [JsonPropertyName("documentation")] public string? Documentation { get; set; }
     [JsonPropertyName("support")] public string? Support { get; set; }
     [JsonPropertyName("icon")] public string? Icon { get; set; }
+    [JsonPropertyName("icons")] public List<McpbManifestIcon>? Icons { get; set; }
     [JsonPropertyName("screenshots")] public List<string>? Screenshots { get; set; }
+    [JsonPropertyName("localization")] public McpbManifestLocalization? Localization { get; set; }
     [JsonPropertyName("server")] public McpbManifestServer Server { get; set; } = new();
     [JsonPropertyName("tools")] public List<McpbManifestTool>? Tools { get; set; }
     [JsonPropertyName("tools_generated")] public bool? ToolsGenerated { get; set; }

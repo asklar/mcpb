@@ -90,6 +90,15 @@ public static class ValidateCommand
                 var currentWarnings = new List<ValidationIssue>(warnings);
                 var additionalErrors = new List<string>();
 
+                // Parse JSON to get root properties for localization validation
+                HashSet<string>? rootProps = null;
+                using (var doc = JsonDocument.Parse(json))
+                {
+                    rootProps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                        foreach (var p in doc.RootElement.EnumerateObject()) rootProps.Add(p.Name);
+                }
+
                 if (!string.IsNullOrWhiteSpace(dirname))
                 {
                     var baseDir = Path.GetFullPath(dirname);
@@ -103,6 +112,12 @@ public static class ValidateCommand
 
                     var fileErrors = ManifestCommandHelpers.ValidateReferencedFiles(manifest, baseDir);
                     foreach (var err in fileErrors)
+                    {
+                        additionalErrors.Add($"ERROR: {err}");
+                    }
+
+                    var localizationErrors = ManifestCommandHelpers.ValidateLocalizationCompleteness(manifest, baseDir, rootProps);
+                    foreach (var err in localizationErrors)
                     {
                         additionalErrors.Add($"ERROR: {err}");
                     }

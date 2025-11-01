@@ -117,6 +117,35 @@ public static class ManifestValidator
                 if (v.Min.HasValue && v.Max.HasValue && v.Min > v.Max) issues.Add(new($"user_config.{kv.Key}", "min cannot exceed max"));
             }
 
+        if (m.Localization != null)
+        {
+            // Resources is optional; default is "mcpb-resources/${locale}.json"
+            var resources = m.Localization.Resources ?? "mcpb-resources/${locale}.json";
+            if (!resources.Contains("${locale}", StringComparison.OrdinalIgnoreCase))
+                issues.Add(new("localization.resources", "resources must include a \"${locale}\" placeholder"));
+
+            // DefaultLocale is optional; default is "en-US"
+            var defaultLocale = m.Localization.DefaultLocale ?? "en-US";
+            if (!Regex.IsMatch(defaultLocale, "^[A-Za-z0-9]{2,8}(?:-[A-Za-z0-9]{1,8})*$"))
+                issues.Add(new("localization.default_locale", "default_locale must be a valid BCP 47 locale identifier"));
+        }
+
+        if (m.Icons != null)
+        {
+            for (int i = 0; i < m.Icons.Count; i++)
+            {
+                var icon = m.Icons[i];
+                if (string.IsNullOrWhiteSpace(icon.Src))
+                    issues.Add(new($"icons[{i}].src", "src is required"));
+                if (string.IsNullOrWhiteSpace(icon.Size))
+                    issues.Add(new($"icons[{i}].size", "size is required"));
+                else if (!Regex.IsMatch(icon.Size, "^\\d+x\\d+$"))
+                    issues.Add(new($"icons[{i}].size", "size must be in the format \"WIDTHxHEIGHT\" (e.g., \"16x16\")"));
+                if (icon.Theme != null && string.IsNullOrWhiteSpace(icon.Theme))
+                    issues.Add(new($"icons[{i}].theme", "theme cannot be empty when provided"));
+            }
+        }
+
         return issues;
     }
 
