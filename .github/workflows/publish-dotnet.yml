@@ -17,13 +17,13 @@ name: Publish .NET Tool
 # 2. Add protection rules if desired (e.g., required reviewers)
 # 
 # The workflow will run automatically when the version in dotnet/mcpb/mcpb.csproj is changed
-# and pushed to the main branch, or it can be triggered manually.
+# and pushed to the dotnet branch, or it can be triggered manually.
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - dotnet
     paths:
       - 'dotnet/mcpb/mcpb.csproj'
 
