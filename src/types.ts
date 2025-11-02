@@ -61,7 +61,7 @@ export type McpbManifest = McpbManifestLatest;
 /**
  * McpbManifest type representing the union of all manifest versions
  */
-export type McpbManifestAny = z.infer<typeof McpbManifestSchemaAny>;;
+export type McpbManifestAny = z.infer<typeof McpbManifestSchemaAny>;
 
 /**
  * Information about a MCPB package signature

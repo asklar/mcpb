@@ -1,6 +1,5 @@
 import type {
   Logger,
-  McpbManifest,
   McpbManifestAny,
   McpbUserConfigValues,
   McpServerConfig,

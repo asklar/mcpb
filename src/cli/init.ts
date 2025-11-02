@@ -1,10 +1,10 @@
 import { confirm, input, select } from "@inquirer/prompts";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { basename, join, resolve } from "path";
-
-import { DEFAULT_MANIFEST_VERSION } from "../shared/constants.js";
-import type { McpbManifestSchema as McpbManifestSchemaV0_2 } from "../schemas/0.2.js";
 import type * as z from "zod";
+
+import type { McpbManifestSchema as McpbManifestSchemaV0_2 } from "../schemas/0.2.js";
+import { DEFAULT_MANIFEST_VERSION } from "../shared/constants.js";
 
 interface PackageJson {
   name?: string;
