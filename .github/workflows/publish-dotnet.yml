@@ -68,13 +68,16 @@ jobs:
       - name: Remove old v2 NuGet source if exists
         run: dotnet nuget remove source nuget.org || true
 
-      - name: Add v3 NuGet source
-        run: dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org
-
-      - name: List NuGet sources (for debugging)
-        run: dotnet nuget list source
-  
-      - name: Publish to NuGet
+      # Get a short-lived NuGet API key
+      - name: NuGet login (OIDC → temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }} # Recommended: use a secret like ${{ secrets.NUGET_USER }} for your nuget.org username (profile name), NOT your email address
+    
+      # Push the package
+      - name: NuGet push
         run: |
           cd dotnet/mcpb
-          dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push ./artifacts/*.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+ 
