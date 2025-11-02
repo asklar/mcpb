@@ -11,6 +11,7 @@ export {
   MANIFEST_VERSION as LATEST_MANIFEST_VERSION,
   McpbManifestSchema as LatestMcpbManifestSchema,
   McpbManifestSchema, // backwards compatibility - exports latest schema
+  McpbUserConfigValuesSchema, // lightweight schema for direct import without loading full vLatest namespace
 } from "./latest.js";
 
 /**
