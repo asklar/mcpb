@@ -351,10 +351,6 @@ describe("init functions", () => {
           },
         ],
         screenshots: ["screen1.png", "screen2.png"],
-        localization: {
-          resources: "resources/${locale}.json",
-          default_locale: "en-US",
-        },
         server: {
           type: "python",
           entry_point: "server/main.py",

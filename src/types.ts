@@ -1,7 +1,8 @@
 import type * as z from "zod";
 
 import type { McpbManifestSchema as McpbManifestSchemaAny } from "./schemas/any.js";
-import type { McpbManifestSchema as McpbManifestSchemaV0_2 } from "./schemas/0.2.js";
+import { VERSIONED_MANIFEST_SCHEMAS } from "./schemas/index.js";
+// Import schema types from the version matching DEFAULT_MANIFEST_VERSION
 import type {
   McpbManifestAuthorSchema,
   McpbManifestCompatibilitySchema,
@@ -15,7 +16,8 @@ import type {
   McpbUserConfigurationOptionSchema,
   McpbUserConfigValuesSchema,
   McpServerConfigSchema,
-} from "./schemas/0.3.js";
+} from "./schemas/0.2.js";
+import { DEFAULT_MANIFEST_VERSION } from "./shared/constants.js";
 
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 
@@ -53,10 +55,17 @@ export type McpbUserConfigValues = z.infer<typeof McpbUserConfigValuesSchema>;
 export type McpbManifestAny = z.infer<typeof McpbManifestSchemaAny>;
 
 /**
- * McpbManifest type for v0.2 (default version) for backwards compatibility
- * @deprecated Use McpbManifestAny instead to support all manifest versions.
+ * McpbManifest type for the DEFAULT_MANIFEST_VERSION
+ * Use this for creating new manifests with the default version.
  */
-export type McpbManifest = z.infer<typeof McpbManifestSchemaV0_2>;
+export type McpbManifestDefault = z.infer<
+  (typeof VERSIONED_MANIFEST_SCHEMAS)[typeof DEFAULT_MANIFEST_VERSION]
+>;
+
+/**
+ * @deprecated Use McpbManifestAny instead to support all manifest versions, or McpbManifestDefault for the default version.
+ */
+export type McpbManifest = McpbManifestDefault;
 
 /**
  * Information about a MCPB package signature

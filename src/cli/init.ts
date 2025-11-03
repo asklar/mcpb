@@ -1,10 +1,9 @@
 import { confirm, input, select } from "@inquirer/prompts";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { basename, join, resolve } from "path";
-import type * as z from "zod";
 
-import type { McpbManifestSchema as McpbManifestSchemaV0_2 } from "../schemas/0.2.js";
 import { DEFAULT_MANIFEST_VERSION } from "../shared/constants.js";
+import type { McpbManifestDefault } from "../types.js";
 
 interface PackageJson {
   name?: string;
@@ -879,7 +878,7 @@ export function buildManifest(
     resources: string;
     default_locale: string;
   },
-): z.infer<typeof McpbManifestSchemaV0_2> {
+): McpbManifestDefault {
   const { name, displayName, version, description, authorName } = basicInfo;
   const { authorEmail, authorUrl } = authorInfo;
   const { serverType, entryPoint, mcp_config } = serverConfig;
@@ -907,7 +906,7 @@ export function buildManifest(
     ...(visualAssets.screenshots.length > 0
       ? { screenshots: visualAssets.screenshots }
       : {}),
-    ...(localization ? { localization } : {}),
+    // ...(localization ? { localization } : {}),
     server: {
       type: serverType,
       entry_point: entryPoint,
