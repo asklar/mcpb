@@ -6,6 +6,11 @@ import { McpbManifestSchema as LooseManifestSchemaV0_2 } from "../schemas_loose/
 import { McpbManifestSchema as LooseManifestSchemaV0_3 } from "../schemas_loose/0.3.js";
 
 /**
+ * Latest manifest version - indicates the maximum supported version by vAny schema
+ */
+export const LATEST_MANIFEST_VERSION = "0.3" as const;
+
+/**
  * Default manifest version for new packages
  */
 export const DEFAULT_MANIFEST_VERSION = "0.2" as const;
