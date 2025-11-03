@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
-import { McpbManifestSchema, v0_2, v0_3 } from "../src/schemas/index.js";
+import { v0_2, v0_3 } from "../src/schemas/index.js";
 
 describe("McpbManifestSchema", () => {
   it("should validate a valid manifest", () => {
@@ -9,7 +9,7 @@ describe("McpbManifestSchema", () => {
     const manifestContent = readFileSync(manifestPath, "utf-8");
     const manifestData = JSON.parse(manifestContent);
 
-    const result = McpbManifestSchema.safeParse(manifestData);
+    const result = v0_3.McpbManifestSchema.safeParse(manifestData);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -23,11 +23,11 @@ describe("McpbManifestSchema", () => {
     const manifestContent = readFileSync(manifestPath, "utf-8");
     const manifestData = JSON.parse(manifestContent);
 
-    const result = McpbManifestSchema.safeParse(manifestData);
+    const result = v0_3.McpbManifestSchema.safeParse(manifestData);
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      const errors = result.error.issues.map((issue) => issue.path.join("."));
+      const errors = result.error.issues.map((issue: any) => issue.path.join("."));
       expect(errors).toContain("author.name");
       expect(errors).toContain("author.email");
       expect(errors).toContain("server.type");
@@ -134,7 +134,7 @@ describe("McpbManifestSchema", () => {
       },
     };
 
-    const result = McpbManifestSchema.safeParse(fullManifest);
+    const result = v0_3.McpbManifestSchema.safeParse(fullManifest);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -167,7 +167,7 @@ describe("McpbManifestSchema", () => {
         },
       };
 
-      const result = McpbManifestSchema.safeParse(manifest);
+      const result = v0_3.McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(true);
     });
   });
@@ -270,10 +270,10 @@ describe("McpbManifestSchema", () => {
           default_locale: "en-US",
         },
       };
-      const result = McpbManifestSchema.safeParse(manifest);
+      const result = v0_3.McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(false);
       if (!result.success) {
-        const messages = result.error.issues.map((issue) => issue.message);
+        const messages = result.error.issues.map((issue: any) => issue.message);
         expect(messages.join(" ")).toContain("${locale}");
       }
     });
@@ -286,7 +286,7 @@ describe("McpbManifestSchema", () => {
           default_locale: "en_us",
         },
       };
-      const result = McpbManifestSchema.safeParse(manifest);
+      const result = v0_3.McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(false);
     });
 
@@ -298,7 +298,7 @@ describe("McpbManifestSchema", () => {
           default_locale: "en-US",
         },
       };
-      const result = McpbManifestSchema.safeParse(manifest);
+      const result = v0_3.McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(true);
     });
   });
@@ -322,7 +322,7 @@ describe("McpbManifestSchema", () => {
         ...base,
         icons: [{ src: "assets/icon.png", size: "16", theme: "light" }],
       };
-      const result = McpbManifestSchema.safeParse(manifest);
+      const result = v0_3.McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(false);
     });
 
@@ -331,7 +331,7 @@ describe("McpbManifestSchema", () => {
         ...base,
         icons: [{ src: "assets/icon.png", size: "128x128" }],
       };
-      const result = McpbManifestSchema.safeParse(manifest);
+      const result = v0_3.McpbManifestSchema.safeParse(manifest);
       expect(result.success).toBe(true);
     });
   });

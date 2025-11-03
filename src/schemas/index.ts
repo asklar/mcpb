@@ -6,12 +6,6 @@ export * as v0_1 from "./0.1.js";
 export * as v0_2 from "./0.2.js";
 export * as v0_3 from "./0.3.js";
 export * as vAny from "./any.js";
-export * as vLatest from "./latest.js";
-export {
-  MANIFEST_VERSION as LATEST_MANIFEST_VERSION,
-  McpbManifestSchema as LatestMcpbManifestSchema,
-  McpbManifestSchema, // backwards compatibility - exports latest schema
-} from "./latest.js";
 
 /**
  * Map of manifest versions to their strict schemas

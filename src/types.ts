@@ -8,14 +8,13 @@ import type {
   McpbManifestPlatformOverrideSchema,
   McpbManifestPromptSchema,
   McpbManifestRepositorySchema,
-  McpbManifestSchema,
   McpbManifestServerSchema,
   McpbManifestToolSchema,
   McpbSignatureInfoSchema,
   McpbUserConfigurationOptionSchema,
   McpbUserConfigValuesSchema,
   McpServerConfigSchema,
-} from "./schemas/latest.js";
+} from "./schemas/0.3.js";
 
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 
@@ -48,20 +47,14 @@ export type McpbUserConfigurationOption = z.infer<
 export type McpbUserConfigValues = z.infer<typeof McpbUserConfigValuesSchema>;
 
 /**
- * McpbManifest type for the latest manifest version only
- * Use this when you specifically need the latest version.
- */
-export type McpbManifestLatest = z.infer<typeof McpbManifestSchema>;
-
-/**
- * Alias for McpbManifestLatest for backwards compatibility.
- */
-export type McpbManifest = McpbManifestLatest;
-
-/**
  * McpbManifest type representing the union of all manifest versions
  */
 export type McpbManifestAny = z.infer<typeof McpbManifestSchemaAny>;
+
+/**
+ * @deprecated Use McpbManifestAny instead to support all manifest versions.
+ */
+export type McpbManifest = McpbManifestAny;
 
 /**
  * Information about a MCPB package signature
