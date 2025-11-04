@@ -991,9 +991,9 @@ export async function initExtension(
     const visualAssets = nonInteractive
       ? { icon: "", icons: [], screenshots: [] }
       : await promptVisualAssets();
-    const localization = nonInteractive
-      ? undefined
-      : await promptLocalization();
+    // const localization = nonInteractive
+    //   ? undefined
+    //   : await promptLocalization();
     const serverConfig = nonInteractive
       ? getDefaultServerConfig(packageData)
       : await promptServerConfig(packageData);
