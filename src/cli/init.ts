@@ -874,7 +874,7 @@ export function buildManifest(
     license: string;
     repository?: { type: string; url: string };
   },
-  localization?: {
+  _localization?: {
     resources: string;
     default_locale: string;
   },

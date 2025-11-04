@@ -1,8 +1,5 @@
 import type * as z from "zod";
 
-import type { McpbManifestSchema as McpbManifestSchemaAny } from "./schemas/any.js";
-import type { VERSIONED_MANIFEST_SCHEMAS } from "./schemas/index.js";
-import type { DEFAULT_MANIFEST_VERSION } from "./shared/constants.js";
 // Import schema types from the version matching DEFAULT_MANIFEST_VERSION
 import type {
   McpbManifestAuthorSchema,
@@ -18,6 +15,9 @@ import type {
   McpbUserConfigValuesSchema,
   McpServerConfigSchema,
 } from "./schemas/0.2.js";
+import type { McpbManifestSchema as McpbManifestSchemaAny } from "./schemas/any.js";
+import type { VERSIONED_MANIFEST_SCHEMAS } from "./schemas/index.js";
+import type { DEFAULT_MANIFEST_VERSION } from "./shared/constants.js";
 
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 
