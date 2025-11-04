@@ -13,3 +13,6 @@ export const McpbSignatureInfoSchema = z.strictObject({
   valid_to: z.string().optional(),
   fingerprint: z.string().optional(),
 });
+
+export type McpbSignatureInfo = z.infer<typeof McpbSignatureInfoSchema>;
+export type McpbUserConfigValues = z.infer<typeof McpbUserConfigValuesSchema>;
