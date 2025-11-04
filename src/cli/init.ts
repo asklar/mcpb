@@ -1026,7 +1026,6 @@ export async function initExtension(
       compatibility,
       userConfig,
       optionalFields,
-      localization,
     );
 
     // Write manifest
