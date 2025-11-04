@@ -874,10 +874,10 @@ export function buildManifest(
     license: string;
     repository?: { type: string; url: string };
   },
-  _localization?: {
-    resources: string;
-    default_locale: string;
-  },
+  // localization?: {
+  //   resources: string;
+  //   default_locale: string;
+  // },
 ): McpbManifestDefault {
   const { name, displayName, version, description, authorName } = basicInfo;
   const { authorEmail, authorUrl } = authorInfo;
