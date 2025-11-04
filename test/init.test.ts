@@ -216,7 +216,7 @@ describe("init functions", () => {
           keywords: "",
           license: "",
         },
-        undefined,
+        // undefined, // localization
       );
 
       expect(manifest).toEqual({
@@ -315,10 +315,10 @@ describe("init functions", () => {
           license: "MIT",
           repository: { type: "git", url: "https://github.com/user/repo" },
         },
-        {
-          resources: "resources/${locale}.json",
-          default_locale: "en-US",
-        },
+        // { // localization
+        //   resources: "resources/${locale}.json",
+        //   default_locale: "en-US",
+        // },
       );
 
       expect(manifest).toEqual({
@@ -351,10 +351,6 @@ describe("init functions", () => {
           },
         ],
         screenshots: ["screen1.png", "screen2.png"],
-        localization: {
-          resources: "resources/${locale}.json",
-          default_locale: "en-US",
-        },
         server: {
           type: "python",
           entry_point: "server/main.py",

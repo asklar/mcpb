@@ -1,10 +1,7 @@
-import {
-  McpbManifestSchema as McpbManifestSchemaLatest,
-  McpbSignatureInfoSchema,
-} from "../dist/schemas/latest.js";
 import { McpbManifestSchema as McpbManifestSchema_v0_1 } from "../dist/schemas/0.1.js";
 import { McpbManifestSchema as McpbManifestSchema_v0_2 } from "../dist/schemas/0.2.js";
 import { McpbManifestSchema as McpbManifestSchema_v0_3 } from "../dist/schemas/0.3.js";
+import { McpbSignatureInfoSchema } from "../dist/shared/common.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -17,7 +14,6 @@ const versionedManifestSchemas = {
   "mcpb-manifest-v0.1": McpbManifestSchema_v0_1,
   "mcpb-manifest-v0.2": McpbManifestSchema_v0_2,
   "mcpb-manifest-v0.3": McpbManifestSchema_v0_3,
-  "mcpb-manifest-latest": McpbManifestSchemaLatest,
 };
 
 // Other schemas
