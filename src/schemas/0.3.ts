@@ -76,11 +76,6 @@ export const McpbUserConfigurationOptionSchema = z.strictObject({
   max: z.number().optional(),
 });
 
-export const McpbUserConfigValuesSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-);
-
 export const McpbManifestLocalizationSchema = z.strictObject({
   resources: z
     .string()
@@ -147,12 +142,3 @@ export const McpbManifestSchema = z
     message:
       "Either 'dxt_version' (deprecated) or 'manifest_version' must be provided",
   });
-
-export const McpbSignatureInfoSchema = z.strictObject({
-  status: z.enum(["signed", "unsigned", "self-signed"]),
-  publisher: z.string().optional(),
-  issuer: z.string().optional(),
-  valid_from: z.string().optional(),
-  valid_to: z.string().optional(),
-  fingerprint: z.string().optional(),
-});

@@ -1,9 +1,12 @@
 import { confirm, input, select } from "@inquirer/prompts";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { basename, join, resolve } from "path";
+import type { z } from "zod";
 
+// Import the schema for DEFAULT_MANIFEST_VERSION
+// TODO: Allow dynamic manifest version choice
+import type { McpbManifestSchema } from "../schemas/0.2.js";
 import { DEFAULT_MANIFEST_VERSION } from "../shared/constants.js";
-import type { McpbManifestDefault } from "../types.js";
 
 interface PackageJson {
   name?: string;
@@ -878,7 +881,7 @@ export function buildManifest(
   //   resources: string;
   //   default_locale: string;
   // },
-): McpbManifestDefault {
+): z.infer<typeof McpbManifestSchema> {
   const { name, displayName, version, description, authorName } = basicInfo;
   const { authorEmail, authorUrl } = authorInfo;
   const { serverType, entryPoint, mcp_config } = serverConfig;

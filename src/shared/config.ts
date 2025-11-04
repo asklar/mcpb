@@ -1,9 +1,7 @@
-import type {
-  Logger,
-  McpbManifestAny,
-  McpbUserConfigValues,
-  McpServerConfig,
-} from "../types.js";
+import type { z } from "zod";
+
+import type { Logger, McpbManifestAny } from "../types.js";
+import type { McpbUserConfigValuesSchema } from "./common.js";
 
 /**
  * This file contains utility functions for handling MCPB configuration,
@@ -88,14 +86,14 @@ interface GetMcpConfigForManifestOptions {
   manifest: McpbManifestAny;
   extensionPath: string;
   systemDirs: Record<string, string>;
-  userConfig: McpbUserConfigValues;
+  userConfig: z.infer<typeof McpbUserConfigValuesSchema>;
   pathSeparator: string;
   logger?: Logger;
 }
 
 export async function getMcpConfigForManifest(
   options: GetMcpConfigForManifestOptions,
-): Promise<McpServerConfig | undefined> {
+): Promise<McpbManifestAny["server"]["mcp_config"] | undefined> {
   const {
     manifest,
     extensionPath,
@@ -109,7 +107,7 @@ export async function getMcpConfigForManifest(
     return undefined;
   }
 
-  let result: McpServerConfig = {
+  let result: McpbManifestAny["server"]["mcp_config"] = {
     ...baseConfig,
   };
 
@@ -173,14 +171,17 @@ export async function getMcpConfigForManifest(
   }
 
   // Replace all variables in the config
-  result = replaceVariables(result, variables) as McpServerConfig;
+  result = replaceVariables(
+    result,
+    variables,
+  ) as McpbManifestAny["server"]["mcp_config"];
 
   return result;
 }
 
 interface HasRequiredConfigMissingOptions {
   manifest: McpbManifestAny;
-  userConfig?: McpbUserConfigValues;
+  userConfig?: z.infer<typeof McpbUserConfigValuesSchema>;
 }
 
 function isInvalidSingleValue(value: unknown): boolean {
