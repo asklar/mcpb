@@ -307,11 +307,11 @@
         "additionalProperties": false
       }
     },
-    "_meta": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": {}
+    "privacy_policies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
       }
     }
   },
