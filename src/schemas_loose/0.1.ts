@@ -104,7 +104,6 @@ export const McpbManifestSchema = z
     user_config: z
       .record(z.string(), McpbUserConfigurationOptionSchema)
       .optional(),
-    privacy_policies: z.array(z.string().url()).optional(),
   })
   .refine((data) => !!(data.dxt_version || data.manifest_version), {
     message:

@@ -306,13 +306,6 @@
         ],
         "additionalProperties": false
       }
-    },
-    "privacy_policies": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "format": "uri"
-      }
     }
   },
   "required": [
