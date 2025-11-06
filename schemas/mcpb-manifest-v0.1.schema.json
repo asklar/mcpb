@@ -306,13 +306,6 @@
         ],
         "additionalProperties": false
       }
-    },
-    "_meta": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": {}
-      }
     }
   },
   "required": [
