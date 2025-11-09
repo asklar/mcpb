@@ -95,6 +95,51 @@ public class CliValidateTests
     }
 
     [Fact]
+    public void Validate_DiscoverDetectsStaticResponsesMismatch()
+    {
+        var dir = CreateTempDir();
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+
+        var manifest = new Mcpb.Core.McpbManifest
+        {
+            Name = "meta",
+            Description = "desc",
+            Author = new Mcpb.Core.McpbManifestAuthor { Name = "A" },
+            Server = new Mcpb.Core.McpbManifestServer
+            {
+                Type = "binary",
+                EntryPoint = "server/demo",
+                McpConfig = new Mcpb.Core.McpServerConfigWithOverrides { Command = "${__dirname}/server/demo" }
+            },
+            Tools = new List<Mcpb.Core.McpbManifestTool> { new() { Name = "dummy", Description = "fake" } },
+            Prompts = new List<Mcpb.Core.McpbManifestPrompt> { new() { Name = "prompt", Description = "desc", Text = "body" } }
+        };
+
+        File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", "[{\"name\":\"dummy\",\"description\":\"fake\"}]");
+        Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", "[{\"name\":\"prompt\",\"description\":\"desc\",\"text\":\"body\"}]");
+        Environment.SetEnvironmentVariable("MCPB_INITIALIZE_DISCOVERY_JSON", "{\"protocolVersion\":\"2025-01-01\",\"serverInfo\":{\"name\":\"test-server\"}}");
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", "{\"tools\":[{\"name\":\"dummy\",\"description\":\"fake\"}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "validate", "manifest.json", "--dirname", dir, "--discover");
+            _output.WriteLine("STDOUT: " + stdout);
+            _output.WriteLine("STDERR: " + stderr);
+            Assert.NotEqual(0, code);
+            Assert.Contains("static_responses", stdout + stderr, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("tools/list", stdout + stderr, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null);
+            Environment.SetEnvironmentVariable("MCPB_PROMPT_DISCOVERY_JSON", null);
+            Environment.SetEnvironmentVariable("MCPB_INITIALIZE_DISCOVERY_JSON", null);
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null);
+        }
+    }
+
+    [Fact]
     public void Validate_MissingDescription_Fails()
     {
         var dir = CreateTempDir();
@@ -192,6 +237,7 @@ public class CliValidateTests
             Assert.Contains("Tool list mismatch", stdout + stderr);
             Assert.Contains("Prompt list mismatch", stdout + stderr);
             Assert.Contains("Use --update", stdout + stderr);
+            Assert.Contains("--discover", stdout + stderr, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

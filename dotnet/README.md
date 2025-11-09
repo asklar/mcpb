@@ -23,7 +23,7 @@ dotnet tool install --global Mcpb.Cli --add-source ./bin/Release
 | Command                                                                                 | Description                      |
 | --------------------------------------------------------------------------------------- | -------------------------------- |
 | `mcpb init [directory] [--server-type node\|python\|binary\|auto] [--entry-point path]` | Create manifest.json             |
-| `mcpb validate [manifest\|directory]`                                                   | Validate manifest                |
+| `mcpb validate [manifest\|directory] [--dirname path] [--discover] [--update] [--verbose]` | Validate manifest and related assets |
 | `mcpb pack [directory] [output]`                                                        | Create .mcpb archive             |
 | `mcpb unpack <file> [outputDir]`                                                        | Extract archive                  |
 | `mcpb sign <file> [--cert cert.pem --key key.pem --self-signed]`                        | Sign bundle                      |
@@ -34,6 +34,11 @@ dotnet tool install --global Mcpb.Cli --add-source ./bin/Release
 ## Windows `_meta` Updates
 
 When you run `mcpb validate --update` or `mcpb pack --update`, the tool captures the Windows-focused initialize and tools/list responses returned during MCP discovery. The static responses are written to `manifest._meta["com.microsoft.windows"].static_responses` so Windows clients can use cached protocol data without invoking the server. Re-run either command with `--update` whenever you want to refresh those cached responses.
+
+## Validation Modes
+
+- `--discover` runs capability discovery without rewriting the manifest. It exits with a non-zero status if discovered tools or prompts differ from the manifest, which is helpful for CI checks.
+- `--verbose` prints each validation step, including the files and locale resources being verified, so you can diagnose failures quickly.
 
 ## License Compliance
 

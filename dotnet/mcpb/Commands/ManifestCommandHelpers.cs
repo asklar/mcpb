@@ -1,13 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Mcpb.Core;
 using Mcpb.Json;
+using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
@@ -15,11 +18,34 @@ namespace Mcpb.Commands;
 
 internal static class ManifestCommandHelpers
 {
+    private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DiscoveryInitializationTimeout = TimeSpan.FromSeconds(15);
+
     internal record CapabilityDiscoveryResult(
         List<McpbManifestTool> Tools,
         List<McpbManifestPrompt> Prompts,
         McpbInitializeResult? InitializeResponse,
-        McpbToolsListResult? ToolsListResponse);
+        McpbToolsListResult? ToolsListResponse,
+        string? ReportedServerName,
+        string? ReportedServerVersion);
+
+    internal record CapabilityComparisonResult(
+        bool NamesDiffer,
+        bool MetadataDiffer,
+        List<string> SummaryTerms,
+        List<string> Messages)
+    {
+        public bool HasDifferences => NamesDiffer || MetadataDiffer;
+    }
+
+    internal record StaticResponseComparisonResult(
+        bool InitializeDiffers,
+        bool ToolsListDiffers,
+        List<string> SummaryTerms,
+        List<string> Messages)
+    {
+        public bool HasDifferences => InitializeDiffers || ToolsListDiffers;
+    }
 
     /// <summary>
     /// Recursively filters out null properties from a JsonElement to match JsonIgnoreCondition.WhenWritingNull behavior
@@ -73,13 +99,69 @@ internal static class ManifestCommandHelpers
         }
     }
 
-    internal static List<string> ValidateReferencedFiles(McpbManifest manifest, string baseDir)
+    internal static List<string> ValidateReferencedFiles(McpbManifest manifest, string baseDir, Action<string>? verboseLog = null)
     {
         var errors = new List<string>();
         if (manifest.Server == null)
         {
             errors.Add("Manifest server configuration missing");
             return errors;
+        }
+
+        verboseLog?.Invoke("Checking referenced files and assets");
+
+        static bool IsSystem32Path(string value, out string normalizedAbsolute)
+        {
+            normalizedAbsolute = string.Empty;
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            try
+            {
+                var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+                if (string.IsNullOrWhiteSpace(windowsDir)) return false;
+                var candidate = value.Replace('/', '\\');
+                if (!Path.IsPathRooted(candidate)) return false;
+                var full = Path.GetFullPath(candidate);
+                var system32 = Path.Combine(windowsDir, "System32");
+                if (full.StartsWith(system32, StringComparison.OrdinalIgnoreCase))
+                {
+                    normalizedAbsolute = full;
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+            return false;
+        }
+
+        bool TryResolveManifestPath(string rawPath, string category, out string resolved)
+        {
+            resolved = string.Empty;
+            if (IsSystem32Path(rawPath, out var systemPath))
+            {
+                resolved = systemPath;
+                return true;
+            }
+
+            if (rawPath.StartsWith('/') || rawPath.StartsWith('\\'))
+            {
+                errors.Add($"{category} path must be relative and use '/' separators: {rawPath}");
+                return false;
+            }
+            if (Path.IsPathRooted(rawPath))
+            {
+                errors.Add($"{category} path must be relative or reside under Windows\\System32: {rawPath}");
+                return false;
+            }
+            if (rawPath.Contains('\\'))
+            {
+                errors.Add($"{category} path must use '/' as directory separator: {rawPath}");
+                return false;
+            }
+
+            resolved = Resolve(rawPath);
+            return true;
         }
 
         string Resolve(string rel)
@@ -95,7 +177,11 @@ internal static class ManifestCommandHelpers
         void CheckFile(string? relativePath, string category)
         {
             if (string.IsNullOrWhiteSpace(relativePath)) return;
-            var resolved = Resolve(relativePath);
+            if (!TryResolveManifestPath(relativePath, category, out var resolved))
+            {
+                return;
+            }
+            verboseLog?.Invoke($"Ensuring {category} file exists: {relativePath} -> {resolved}");
             if (!File.Exists(resolved))
             {
                 errors.Add($"Missing {category} file: {relativePath}");
@@ -109,6 +195,7 @@ internal static class ManifestCommandHelpers
 
         if (!string.IsNullOrWhiteSpace(manifest.Server.EntryPoint))
         {
+            verboseLog?.Invoke($"Checking server entry point {manifest.Server.EntryPoint}");
             CheckFile(manifest.Server.EntryPoint, "entry_point");
         }
 
@@ -116,6 +203,7 @@ internal static class ManifestCommandHelpers
         if (!string.IsNullOrWhiteSpace(command))
         {
             var cmd = command!;
+            verboseLog?.Invoke($"Resolving server command {cmd}");
             bool pathLike = cmd.Contains('/') || cmd.Contains('\\') ||
                 cmd.StartsWith("${__dirname}", StringComparison.OrdinalIgnoreCase) ||
                 cmd.StartsWith("./") || cmd.StartsWith("..") ||
@@ -131,6 +219,7 @@ internal static class ManifestCommandHelpers
                 {
                     resolved = Path.Combine(baseDir, normalized);
                 }
+                verboseLog?.Invoke($"Ensuring server command file exists: {resolved}");
                 if (!File.Exists(resolved))
                 {
                     errors.Add($"Missing server.command file: {command}");
@@ -143,6 +232,7 @@ internal static class ManifestCommandHelpers
             foreach (var shot in manifest.Screenshots)
             {
                 if (string.IsNullOrWhiteSpace(shot)) continue;
+                verboseLog?.Invoke($"Checking screenshot {shot}");
                 CheckFile(shot, "screenshot");
             }
         }
@@ -154,6 +244,7 @@ internal static class ManifestCommandHelpers
                 var icon = manifest.Icons[i];
                 if (!string.IsNullOrWhiteSpace(icon.Src))
                 {
+                    verboseLog?.Invoke($"Checking icon {icon.Src}");
                     CheckFile(icon.Src, $"icons[{i}]");
                 }
             }
@@ -169,6 +260,7 @@ internal static class ManifestCommandHelpers
             
             var defaultLocalePath = resourcePath.Replace("${locale}", defaultLocale, StringComparison.OrdinalIgnoreCase);
             var resolved = Resolve(defaultLocalePath);
+            verboseLog?.Invoke($"Ensuring localization resources exist for default locale at {resolved}");
             
             // Check if it's a file or directory
             if (!File.Exists(resolved) && !Directory.Exists(resolved))
@@ -180,12 +272,14 @@ internal static class ManifestCommandHelpers
         return errors;
     }
 
-    internal static List<string> ValidateLocalizationCompleteness(McpbManifest manifest, string baseDir, HashSet<string>? rootProps = null)
+    internal static List<string> ValidateLocalizationCompleteness(McpbManifest manifest, string baseDir, HashSet<string>? rootProps = null, Action<string>? verboseLog = null)
     {
         var errors = new List<string>();
         
         if (manifest.Localization == null)
             return errors;
+
+        verboseLog?.Invoke("Checking localization completeness across locales");
 
         // Get the resource path pattern and default locale
         var resourcePath = manifest.Localization.Resources ?? "mcpb-resources/${locale}.json";
@@ -236,6 +330,7 @@ internal static class ManifestCommandHelpers
             if (locale == defaultLocale)
                 continue; // Skip default locale (values are in main manifest)
 
+            verboseLog?.Invoke($"Validating localization file {filePath} for locale {locale}");
             try
             {
                 if (!File.Exists(filePath))
@@ -295,6 +390,7 @@ internal static class ManifestCommandHelpers
                     var localizedPrompts = localeResource.Prompts ?? new List<McpbLocalizationResourcePrompt>();
                     foreach (var prompt in promptsWithDescriptions)
                     {
+                        verboseLog?.Invoke($"Ensuring prompt '{prompt.Name}' has localized content in {locale}");
                         var found = localizedPrompts.Any(p => 
                             p.Name == prompt.Name && 
                             !string.IsNullOrWhiteSpace(p.Description));
@@ -378,11 +474,15 @@ internal static class ManifestCommandHelpers
     {
         var overrideTools = TryParseToolOverride("MCPB_TOOL_DISCOVERY_JSON");
         var overridePrompts = TryParsePromptOverride("MCPB_PROMPT_DISCOVERY_JSON");
-        if (overrideTools != null || overridePrompts != null)
+        var overrideInitialize = TryParseInitializeOverride("MCPB_INITIALIZE_DISCOVERY_JSON");
+        var overrideToolsList = TryParseToolsListOverride("MCPB_TOOLS_LIST_DISCOVERY_JSON");
+        if (overrideTools != null || overridePrompts != null || overrideInitialize != null || overrideToolsList != null)
         {
             return new CapabilityDiscoveryResult(
                 overrideTools ?? new List<McpbManifestTool>(),
                 overridePrompts ?? new List<McpbManifestPrompt>(),
+                overrideInitialize,
+                overrideToolsList,
                 null,
                 null);
         }
@@ -410,15 +510,21 @@ internal static class ManifestCommandHelpers
         var toolInfos = new List<McpbManifestTool>();
         var promptInfos = new List<McpbManifestPrompt>();
         McpbInitializeResult? initializeResponse = null;
-        McpbToolsListResult? toolsListResponse = null;
+    McpbToolsListResult? toolsListResponse = null;
+    var clientCreated = false;
+    string? reportedServerName = null;
+    string? reportedServerVersion = null;
+        bool supportsToolsList = true;
+        bool supportsPromptsList = true;
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            using var cts = new CancellationTokenSource(DiscoveryTimeout);
             IDictionary<string, string?>? envVars = null;
             if (env != null)
             {
                 envVars = new Dictionary<string, string?>(env.ToDictionary(kv => kv.Key, kv => (string?)kv.Value), StringComparer.OrdinalIgnoreCase);
             }
+
             var transport = new StdioClientTransport(new StdioClientTransportOptions
             {
                 Name = "mcpb-discovery",
@@ -428,7 +534,76 @@ internal static class ManifestCommandHelpers
                 EnvironmentVariables = envVars
             });
             logInfo?.Invoke($"Discovering tools & prompts using: {command} {string.Join(' ', args)}");
-            await using var client = await McpClient.CreateAsync(transport);
+            ValueTask HandleServerLog(JsonRpcNotification notification, CancellationToken token)
+            {
+                if (notification.Params is null)
+                {
+                    return ValueTask.CompletedTask;
+                }
+
+                try
+                {
+                    var logParams = notification.Params.Deserialize<LoggingMessageNotificationParams>();
+                    if (logParams == null)
+                    {
+                        return ValueTask.CompletedTask;
+                    }
+
+                    string? message = null;
+                    if (logParams.Data is JsonElement dataElement)
+                    {
+                        if (dataElement.ValueKind == JsonValueKind.String)
+                        {
+                            message = dataElement.GetString();
+                        }
+                        else if (dataElement.ValueKind != JsonValueKind.Null && dataElement.ValueKind != JsonValueKind.Undefined)
+                        {
+                            message = dataElement.ToString();
+                        }
+                    }
+
+                    var loggerName = string.IsNullOrWhiteSpace(logParams.Logger) ? "server" : logParams.Logger;
+                    var text = string.IsNullOrWhiteSpace(message) ? "(no details provided)" : message!;
+                    var formatted = $"[{loggerName}] {text}";
+                    if (logParams.Level >= LoggingLevel.Error)
+                    {
+                        logWarning?.Invoke($"MCP server error: {formatted}");
+                    }
+                    else if (logParams.Level >= LoggingLevel.Warning)
+                    {
+                        logWarning?.Invoke($"MCP server warning: {formatted}");
+                    }
+                    else
+                    {
+                        logInfo?.Invoke($"MCP server log ({logParams.Level}): {formatted}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logWarning?.Invoke($"Failed to process MCP server log notification: {ex.Message}");
+                }
+
+                return ValueTask.CompletedTask;
+            }
+
+            var clientOptions = new McpClientOptions
+            {
+                InitializationTimeout = DiscoveryInitializationTimeout,
+                Handlers = new McpClientHandlers
+                {
+                    NotificationHandlers = new[]
+                    {
+                        new KeyValuePair<string, Func<JsonRpcNotification, CancellationToken, ValueTask>>(
+                            NotificationMethods.LoggingMessageNotification,
+                            HandleServerLog)
+                    }
+                }
+            };
+
+            await using var client = await McpClient.CreateAsync(transport, clientOptions, cancellationToken: cts.Token);
+            reportedServerName = client.ServerInfo?.Name;
+            reportedServerVersion = client.ServerInfo?.Version;
+            clientCreated = true;
 
             // Capture initialize response using McpClient properties
             // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
@@ -436,11 +611,21 @@ internal static class ManifestCommandHelpers
             {
                 // Serialize and filter capabilities
                 object? capabilities = null;
+                JsonElement capabilitiesElement = default;
+                bool hasCapabilitiesElement = false;
                 if (client.ServerCapabilities != null)
                 {
                     var capJson = JsonSerializer.Serialize(client.ServerCapabilities);
                     var capElement = JsonSerializer.Deserialize<JsonElement>(capJson);
+                    capabilitiesElement = capElement;
+                    hasCapabilitiesElement = true;
                     capabilities = FilterNullProperties(capElement);
+                }
+
+                if (hasCapabilitiesElement)
+                {
+                    supportsToolsList = SupportsCapability(capabilitiesElement, "tools");
+                    supportsPromptsList = SupportsCapability(capabilitiesElement, "prompts");
                 }
 
                 // Serialize and filter serverInfo
@@ -467,43 +652,134 @@ internal static class ManifestCommandHelpers
                 logWarning?.Invoke($"Failed to capture initialize response: {ex.Message}");
             }
 
-            var tools = await client.ListToolsAsync(null, cts.Token);
-
-            // Capture tools/list response using typed Tool objects
-            // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
             {
-                var toolsList = new List<object>();
-                foreach (var tool in tools)
-                {
-                    // Serialize the tool and parse to JsonElement
-                    var json = JsonSerializer.Serialize(tool.ProtocolTool);
-                    var element = JsonSerializer.Deserialize<JsonElement>(json);
-
-                    // Filter out null properties recursively
-                    var filtered = FilterNullProperties(element);
-                    toolsList.Add(filtered);
-                }
-                toolsListResponse = new McpbToolsListResult { Tools = toolsList };
+                await client.PingAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                logWarning?.Invoke("MCP server ping timed out during discovery; aborting capability checks.");
+                return new CapabilityDiscoveryResult(
+                    DeduplicateTools(toolInfos),
+                    DeduplicatePrompts(promptInfos),
+                    initializeResponse,
+                    toolsListResponse,
+                    reportedServerName,
+                    reportedServerVersion);
             }
             catch (Exception ex)
             {
-                logWarning?.Invoke($"Failed to capture tools/list response: {ex.Message}");
+                if (ex is McpException)
+                {
+                    LogMcpFailure("ping", ex, logWarning);
+                }
+                else
+                {
+                    logWarning?.Invoke($"MCP server ping failed during discovery: {ex.Message}");
+                }
+
+                return new CapabilityDiscoveryResult(
+                    DeduplicateTools(toolInfos),
+                    DeduplicatePrompts(promptInfos),
+                    initializeResponse,
+                    toolsListResponse,
+                    reportedServerName,
+                    reportedServerVersion);
             }
 
-            foreach (var tool in tools)
+            IList<McpClientTool>? tools = null;
+            if (supportsToolsList)
             {
-                if (string.IsNullOrWhiteSpace(tool.Name)) continue;
-                var manifestTool = new McpbManifestTool
+                try
                 {
-                    Name = tool.Name,
-                    Description = string.IsNullOrWhiteSpace(tool.Description) ? null : tool.Description
-                };
-                toolInfos.Add(manifestTool);
+                    tools = await client.ListToolsAsync(null, cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    logWarning?.Invoke("tools/list request timed out during discovery.");
+                }
+                catch (Exception ex)
+                {
+                    if (ex is McpException)
+                    {
+                        LogMcpFailure("tools/list", ex, logWarning);
+                    }
+                    else
+                    {
+                        logWarning?.Invoke($"tools/list request failed: {ex.Message}");
+                    }
+                }
             }
-            try
+            else
             {
-                var prompts = await client.ListPromptsAsync(cts.Token);
+                logInfo?.Invoke("Server capabilities did not include 'tools'; skipping tools/list request.");
+            }
+
+            if (tools != null)
+            {
+                // Capture tools/list response using typed Tool objects
+                // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
+                try
+                {
+                    var toolsList = new List<object>();
+                    foreach (var tool in tools)
+                    {
+                        // Serialize the tool and parse to JsonElement
+                        var json = JsonSerializer.Serialize(tool.ProtocolTool);
+                        var element = JsonSerializer.Deserialize<JsonElement>(json);
+
+                        // Filter out null properties recursively
+                        var filtered = FilterNullProperties(element);
+                        toolsList.Add(filtered);
+                    }
+                    toolsListResponse = new McpbToolsListResult { Tools = toolsList };
+                }
+                catch (Exception ex)
+                {
+                    logWarning?.Invoke($"Failed to capture tools/list response: {ex.Message}");
+                }
+
+                foreach (var tool in tools)
+                {
+                    if (string.IsNullOrWhiteSpace(tool.Name)) continue;
+                    var manifestTool = new McpbManifestTool
+                    {
+                        Name = tool.Name,
+                        Description = string.IsNullOrWhiteSpace(tool.Description) ? null : tool.Description
+                    };
+                    toolInfos.Add(manifestTool);
+                }
+            }
+            IList<McpClientPrompt>? prompts = null;
+            if (supportsPromptsList)
+            {
+                try
+                {
+                    prompts = await client.ListPromptsAsync(cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    logWarning?.Invoke("prompt list request timed out during discovery.");
+                }
+                catch (Exception ex)
+                {
+                    if (ex is McpException)
+                    {
+                        LogMcpFailure("prompts/list", ex, logWarning);
+                    }
+                    else
+                    {
+                        logWarning?.Invoke($"Prompt discovery skipped: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                logInfo?.Invoke("Server capabilities did not include 'prompts'; skipping prompts/list request.");
+            }
+
+            if (prompts != null)
+            {
                 foreach (var prompt in prompts)
                 {
                     if (string.IsNullOrWhiteSpace(prompt.Name)) continue;
@@ -526,29 +802,96 @@ internal static class ManifestCommandHelpers
                         var promptResult = await client.GetPromptAsync(prompt.Name, cancellationToken: cts.Token);
                         manifestPrompt.Text = ExtractPromptText(promptResult);
                     }
+                    catch (OperationCanceledException)
+                    {
+                        logWarning?.Invoke($"Prompt '{prompt.Name}' content fetch timed out during discovery.");
+                        manifestPrompt.Text = string.Empty;
+                    }
                     catch (Exception ex)
                     {
-                        logWarning?.Invoke($"Prompt '{prompt.Name}' content fetch failed: {ex.Message}");
+                        if (ex is McpException)
+                        {
+                            LogMcpFailure($"prompt content fetch '{prompt.Name}'", ex, logWarning);
+                        }
+                        else
+                        {
+                            logWarning?.Invoke($"Prompt '{prompt.Name}' content fetch failed: {ex.Message}");
+                        }
                         manifestPrompt.Text = string.Empty;
                     }
                     promptInfos.Add(manifestPrompt);
                 }
             }
-            catch (Exception ex)
-            {
-                logWarning?.Invoke($"Prompt discovery skipped: {ex.Message}");
-            }
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (clientCreated)
         {
-            logWarning?.Invoke($"MCP client discovery failed: {ex.Message}");
+            logWarning?.Invoke("MCP client discovery timed out.");
+        }
+        catch (Exception ex) when (clientCreated)
+        {
+            if (ex is McpException)
+            {
+                LogMcpFailure("discovery", ex, logWarning);
+            }
+            else
+            {
+                logWarning?.Invoke($"MCP client discovery failed: {ex.Message}");
+            }
         }
 
         return new CapabilityDiscoveryResult(
             DeduplicateTools(toolInfos),
             DeduplicatePrompts(promptInfos),
             initializeResponse,
-            toolsListResponse);
+            toolsListResponse,
+            reportedServerName,
+            reportedServerVersion);
+    }
+
+    private static void LogMcpFailure(string operation, Exception ex, Action<string>? logWarning)
+    {
+        var details = FormatMcpError(ex);
+        logWarning?.Invoke($"MCP server error during {operation}: {details}");
+    }
+
+    private static bool SupportsCapability(JsonElement capabilitiesElement, string capabilityName)
+    {
+        if (capabilitiesElement.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        foreach (var property in capabilitiesElement.EnumerateObject())
+        {
+            if (string.Equals(property.Name, capabilityName, StringComparison.OrdinalIgnoreCase))
+            {
+                var kind = property.Value.ValueKind;
+                return kind != JsonValueKind.Null && kind != JsonValueKind.Undefined;
+            }
+        }
+
+        return false;
+    }
+
+    private static string FormatMcpError(Exception ex)
+    {
+        if (ex is McpException)
+        {
+            var message = ex.Message;
+            var type = ex.GetType();
+            if (string.Equals(type.FullName, "ModelContextProtocol.McpProtocolException", StringComparison.Ordinal))
+            {
+                var errorCodeProperty = type.GetProperty("ErrorCode");
+                if (errorCodeProperty?.GetValue(ex) is Enum errorCode)
+                {
+                    message += $" (code {Convert.ToInt32(errorCode)} {errorCode})";
+                }
+            }
+
+            return message;
+        }
+
+        return ex.Message;
     }
 
     internal static string NormalizePathForPlatform(string value)
@@ -694,6 +1037,34 @@ internal static class ManifestCommandHelpers
             }
 
             return list.Count == 0 ? null : DeduplicatePrompts(list);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static McpbInitializeResult? TryParseInitializeOverride(string envVar)
+    {
+        var json = Environment.GetEnvironmentVariable(envVar);
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize(json, McpbJsonContext.Default.McpbInitializeResult);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static McpbToolsListResult? TryParseToolsListOverride(string envVar)
+    {
+        var json = Environment.GetEnvironmentVariable(envVar);
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize(json, McpbJsonContext.Default.McpbToolsListResult);
         }
         catch
         {
@@ -915,6 +1286,149 @@ internal static class ManifestCommandHelpers
                 };
             })
             .ToList();
+    }
+
+    internal static CapabilityComparisonResult CompareTools(
+        IEnumerable<McpbManifestTool>? manifestTools,
+        IEnumerable<McpbManifestTool> discoveredTools)
+    {
+        var summaryTerms = new List<string>();
+        var messages = new List<string>();
+
+        var manifestNames = manifestTools?
+            .Where(t => !string.IsNullOrWhiteSpace(t.Name))
+            .Select(t => t.Name)
+            .ToList() ?? new List<string>();
+        manifestNames.Sort(StringComparer.Ordinal);
+
+        var discoveredNames = discoveredTools
+            .Where(t => !string.IsNullOrWhiteSpace(t.Name))
+            .Select(t => t.Name)
+            .ToList();
+        discoveredNames.Sort(StringComparer.Ordinal);
+
+        bool namesDiffer = !manifestNames.SequenceEqual(discoveredNames, StringComparer.Ordinal);
+        if (namesDiffer)
+        {
+            summaryTerms.Add("tool names");
+            var sb = new StringBuilder();
+            sb.AppendLine("Tool list mismatch:");
+            sb.AppendLine("  Manifest:   [" + string.Join(", ", manifestNames) + "]");
+            sb.Append("  Discovered: [" + string.Join(", ", discoveredNames) + "]");
+            messages.Add(sb.ToString());
+        }
+
+        var metadataDiffs = GetToolMetadataDifferences(manifestTools, discoveredTools);
+        bool metadataDiffer = metadataDiffs.Count > 0;
+        if (metadataDiffer)
+        {
+            summaryTerms.Add("tool metadata");
+            var sb = new StringBuilder();
+            sb.AppendLine("Tool metadata mismatch:");
+            foreach (var diff in metadataDiffs)
+            {
+                sb.AppendLine("  " + diff);
+            }
+            messages.Add(sb.ToString().TrimEnd());
+        }
+
+        return new CapabilityComparisonResult(namesDiffer, metadataDiffer, summaryTerms, messages);
+    }
+
+    internal static CapabilityComparisonResult ComparePrompts(
+        IEnumerable<McpbManifestPrompt>? manifestPrompts,
+        IEnumerable<McpbManifestPrompt> discoveredPrompts)
+    {
+        var summaryTerms = new List<string>();
+        var messages = new List<string>();
+
+        var manifestNames = manifestPrompts?
+            .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+            .Select(p => p.Name)
+            .ToList() ?? new List<string>();
+        manifestNames.Sort(StringComparer.Ordinal);
+
+        var discoveredNames = discoveredPrompts
+            .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+            .Select(p => p.Name)
+            .ToList();
+        discoveredNames.Sort(StringComparer.Ordinal);
+
+        bool namesDiffer = !manifestNames.SequenceEqual(discoveredNames, StringComparer.Ordinal);
+        if (namesDiffer)
+        {
+            summaryTerms.Add("prompt names");
+            var sb = new StringBuilder();
+            sb.AppendLine("Prompt list mismatch:");
+            sb.AppendLine("  Manifest:   [" + string.Join(", ", manifestNames) + "]");
+            sb.Append("  Discovered: [" + string.Join(", ", discoveredNames) + "]");
+            messages.Add(sb.ToString());
+        }
+
+        var metadataDiffs = GetPromptMetadataDifferences(manifestPrompts, discoveredPrompts);
+        bool metadataDiffer = metadataDiffs.Count > 0;
+        if (metadataDiffer)
+        {
+            summaryTerms.Add("prompt metadata");
+            var sb = new StringBuilder();
+            sb.AppendLine("Prompt metadata mismatch:");
+            foreach (var diff in metadataDiffs)
+            {
+                sb.AppendLine("  " + diff);
+            }
+            messages.Add(sb.ToString().TrimEnd());
+        }
+
+        return new CapabilityComparisonResult(namesDiffer, metadataDiffer, summaryTerms, messages);
+    }
+
+    internal static StaticResponseComparisonResult CompareStaticResponses(
+        McpbManifest manifest,
+        McpbInitializeResult? initializeResponse,
+        McpbToolsListResult? toolsListResponse)
+    {
+        var summaryTerms = new List<string>();
+        var messages = new List<string>();
+        bool initializeDiffers = false;
+        bool toolsListDiffers = false;
+
+        var windowsMeta = GetWindowsMeta(manifest);
+        var staticResponses = windowsMeta.StaticResponses;
+
+        if (initializeResponse != null)
+        {
+            var expected = BuildInitializeStaticResponse(initializeResponse);
+            if (staticResponses?.Initialize == null)
+            {
+                initializeDiffers = true;
+                summaryTerms.Add("static_responses.initialize");
+                messages.Add("Missing _meta.static_responses.initialize; discovery returned an initialize payload.");
+            }
+            else if (!AreJsonEquivalent(staticResponses.Initialize, expected))
+            {
+                initializeDiffers = true;
+                summaryTerms.Add("static_responses.initialize");
+                messages.Add("_meta.static_responses.initialize differs from discovered initialize payload.");
+            }
+        }
+
+        if (toolsListResponse != null)
+        {
+            if (staticResponses?.ToolsList == null)
+            {
+                toolsListDiffers = true;
+                summaryTerms.Add("static_responses.tools/list");
+                messages.Add("Missing _meta.static_responses.\"tools/list\"; discovery returned a tools/list payload.");
+            }
+            else if (!AreJsonEquivalent(staticResponses.ToolsList, toolsListResponse))
+            {
+                toolsListDiffers = true;
+                summaryTerms.Add("static_responses.tools/list");
+                messages.Add("_meta.static_responses.\"tools/list\" differs from discovered tools/list payload.");
+            }
+        }
+
+        return new StaticResponseComparisonResult(initializeDiffers, toolsListDiffers, summaryTerms, messages);
     }
 
     internal static bool ApplyWindowsMetaStaticResponses(
