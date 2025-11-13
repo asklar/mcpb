@@ -1,7 +1,7 @@
 # MCPB Manifest.json Spec
 
 Current version: `0.3`
-Last updated: 2025-10-24
+Last updated: 2025-12-02
 
 ## Manifest Schema
 
@@ -397,6 +397,55 @@ All client version constraints use semver syntax (e.g., `">=1.0.0"`, `">1.0.0 <2
 The `server` object defines how to run the MCP server:
 
 ### Server Types
+
+Four server types are supported:
+
+- **`node`**: Node.js server with bundled dependencies
+- **`python`**: Python server with bundled dependencies
+- **`binary`**: Compiled executable
+- **`uv`**: Python server using UV runtime (experimental, v0.4+)
+
+### UV Runtime (Experimental, v0.4+)
+
+> **Note:** UV runtime support is experimental and may change in future versions.
+
+The `uv` server type enables cross-platform Python extensions without bundling dependencies. Instead, dependencies are declared in `pyproject.toml` and installed by the host application using UV.
+
+**Benefits:**
+- Cross-platform support (Windows, macOS, Linux; Intel, ARM)
+- Small bundle size (~100 KB vs 5-10 MB)
+- Handles compiled dependencies (pydantic, numpy, etc.)
+- No user Python installation required
+
+**Example:**
+```json
+{
+  "manifest_version": "0.4",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/server.py"
+  }
+}
+```
+
+**Requirements:**
+- Must include `pyproject.toml` with dependencies
+- Must NOT include `server/lib/` or `server/venv/`
+- `mcp_config` is optional (host manages execution)
+
+**Package structure:**
+```
+extension.mcpb
+├── manifest.json       # server.type = "uv"
+├── pyproject.toml      # Dependencies
+├── .mcpbignore        # Exclude .venv, server/lib
+└── src/
+    └── server.py
+```
+
+See `examples/hello-world-uv` for a complete example.
+
+### Node, Python, and Binary Types
 
 1. **Python**: `server.type = "python"`
    - Requires `entry_point` to Python file
