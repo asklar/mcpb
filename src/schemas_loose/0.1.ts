@@ -73,11 +73,6 @@ export const McpbUserConfigurationOptionSchema = z.object({
   max: z.number().optional(),
 });
 
-export const McpbUserConfigValuesSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-);
-
 export const McpbManifestSchema = z
   .object({
     $schema: z.string().optional(),
@@ -109,18 +104,8 @@ export const McpbManifestSchema = z
     user_config: z
       .record(z.string(), McpbUserConfigurationOptionSchema)
       .optional(),
-    _meta: z.record(z.string(), z.record(z.string(), z.any())).optional(),
   })
   .refine((data) => !!(data.dxt_version || data.manifest_version), {
     message:
       "Either 'dxt_version' (deprecated) or 'manifest_version' must be provided",
   });
-
-export const McpbSignatureInfoSchema = z.object({
-  status: z.enum(["signed", "unsigned", "self-signed"]),
-  publisher: z.string().optional(),
-  issuer: z.string().optional(),
-  valid_from: z.string().optional(),
-  valid_to: z.string().optional(),
-  fingerprint: z.string().optional(),
-});
