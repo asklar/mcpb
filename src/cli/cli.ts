@@ -56,7 +56,10 @@ program
     "Manifest version to use in the generated manifest",
   )
   .action(
-    (directory?: string, options?: { yes?: boolean; manifestVersion?: string }) => {
+    (
+      directory?: string,
+      options?: { yes?: boolean; manifestVersion?: string },
+    ) => {
       void (async () => {
         try {
           const success = await initExtension(
