@@ -19,7 +19,7 @@ Options:
 
 Commands:
   init [directory]           Create a new MCPB extension manifest
-  validate <manifest>        Validate a MCPB manifest file
+  validate [manifest]        Validate a MCPB manifest file
   pack <directory> [output]  Pack a directory into a MCPB extension
   sign [options] <mcpb-file>  Sign a MCPB extension file
   verify <mcpb-file>          Verify the signature of a MCPB extension file
@@ -58,7 +58,7 @@ The command will prompt you for:
 
 After creating the manifest, it provides helpful next steps based on your server type.
 
-### `mcpb validate <path>`
+### `mcpb validate [path]`
 
 Validates a MCPB manifest file against the schema. You can provide either a direct path to a manifest.json file or a directory containing one.
 
@@ -69,7 +69,41 @@ mcpb validate manifest.json
 # Validate manifest in directory
 mcpb validate ./my-extension
 mcpb validate .
+
+# Validate using --dirname without specifying manifest.json explicitly
+mcpb validate --dirname ./my-extension
 ```
+
+#### Additional validation with `--dirname`
+
+Passing `--dirname <directory>` performs deeper checks that require access to the extension's source files:
+
+- Always verifies referenced assets relative to the directory (`icon`, each `screenshots` entry, `server.entry_point`, and path-like `server.mcp_config.command`).
+- Add `--discover` (which requires `--dirname`) to launch the server, honor `${__dirname}` tokens, and compare discovered tools/prompts against the manifest without mutating it.
+- Add `--update` (also requires `--dirname` and cannot be combined with `--discover`) to rewrite the manifest with freshly discovered tools/prompts and associated metadata.
+
+When `--dirname` is supplied without an explicit manifest argument, the CLI automatically resolves `<directory>/manifest.json`. `--discover` fails the command if capability names differ from the manifest, while `--update` rewrites the manifest in-place (setting `tools_generated` / `prompts_generated` and copying tool descriptions plus prompt metadata returned by the server). Without either flag, `mcpb validate` only performs schema and asset checks.
+
+The discovery step respects the same environment overrides as `mcpb pack`:
+
+- `MCPB_TOOL_DISCOVERY_JSON`
+- `MCPB_PROMPT_DISCOVERY_JSON`
+
+These allow deterministic testing without launching the server.
+
+#### Providing `user_config` values during validation
+
+When discovery runs (via `--discover` or `--update`, both of which require `--dirname`), `mcpb validate` enforces required `user_config` entries just like packing. Pass overrides with repeated `--user_config name=value` options. Use the same flag multiple times for a key defined with `"multiple": true` to emit more than one value in order:
+
+```bash
+mcpb validate --dirname . \
+  --discover \
+  --user_config api_key=sk-123 \
+  --user_config allowed_directories=/srv/data \
+  --user_config allowed_directories=/srv/docs
+```
+
+Both spellings `--user_config` and `--user-config` are accepted. If a required entry is missing, the CLI prints the exact flags you still need to supply.
 
 ### `mcpb pack <directory> [output]`
 
@@ -88,6 +122,67 @@ The command automatically:
 - Validates the manifest.json
 - Excludes common development files (.git, node_modules/.cache, .DS_Store, etc.)
 - Creates a compressed .mcpb file (ZIP with maximum compression)
+
+#### Capability Discovery (Tools & Prompts)
+
+During packing—and whenever `mcpb validate` runs discovery via `--discover` or `--update` (both require `--dirname`)—the CLI launches your server (based on `server.mcp_config.command` + `args`) and uses the official C# MCP client to request both tool and prompt listings. It compares the discovered tool names (`tools` array) and prompt names (`prompts` array) with those declared in `manifest.json`.
+
+If they differ:
+
+- Default: packing fails with an error explaining the mismatch.
+- `--force`: continue packing despite any mismatch (does not modify the manifest).
+- `--update`: overwrite the `tools` and/or `prompts` list in `manifest.json` with the discovered sets (also sets `tools_generated: true` and/or `prompts_generated: true`) and persists the discovered descriptions plus prompt arguments/text when available.
+- `--no-discover`: skip dynamic discovery entirely (useful offline or when the server cannot be executed locally).
+
+`mcpb validate` uses the same comparison logic when discovery is enabled. `--discover` requires `--dirname` and fails if discovered capabilities differ, while `--update` (also requiring `--dirname`) rewrites the manifest and cannot be combined with `--discover`.
+
+Environment overrides for tests/CI:
+
+- `MCPB_TOOL_DISCOVERY_JSON` JSON array of tool names.
+- `MCPB_PROMPT_DISCOVERY_JSON` JSON array of prompt names.
+  If either is set, the server process is not launched for that capability (the overrides also apply to `mcpb validate`).
+
+#### Providing `user_config` values during packing
+
+If your manifest references `${user_config.*}` tokens, discovery requires real values. Supply them with the `--user_config` (or `--user-config`) flag using `name=value` pairs. Repeat the option to set additional keys or to provide multiple values for entries marked with `"multiple": true` in the manifest. Repeated values for the same key are preserved in order and expand exactly like runtime user input.
+
+```bash
+mcpb pack . \
+  --user_config api_key=sk-123 \
+  --user_config allowed_directories=/srv/data \
+  --user_config allowed_directories=/srv/docs
+```
+
+Quote the entire `name=value` pair if the value contains spaces (for example, `--user_config "root_dir=C:/My Projects"`).
+
+#### Referenced File Validation
+
+Before launching the server or writing the archive, `mcpb pack` now validates that certain files referenced in `manifest.json` actually exist relative to the extension directory:
+
+- `icon` (if specified)
+- `server.entry_point`
+- Path-like `server.mcp_config.command` values (those containing `/`, `\\`, `${__dirname}`, starting with `./` or `..`, or ending in common script/binary extensions such as `.js`, `.py`, `.exe`)
+- Each file in `screenshots` (if specified)
+
+If any of these files are missing, packing fails immediately with an error like `Missing icon file: icon.png`. This happens before dynamic capability discovery so you get fast feedback on manifest inaccuracies.
+
+Commands (e.g. `node`, `python`) that are not path-like are not validated—they are treated as executables resolved by the environment.
+
+Examples:
+
+```bash
+## Fail if mismatch
+mcpb pack .
+
+# Force success even if mismatch
+mcpb pack . --force
+
+## Update manifest.json to discovered tools/prompts
+mcpb pack . --update
+
+# Skip discovery (behaves like legacy pack)
+mcpb pack . --no-discover
+```
 
 ### `mcpb sign <mcpb-file>`
 
