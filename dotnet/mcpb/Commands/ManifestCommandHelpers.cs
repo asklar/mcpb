@@ -18,10 +18,15 @@ namespace Mcpb.Commands;
 
 internal static class ManifestCommandHelpers
 {
+    private const string WindowsAppAliasDirectoriesEnvVar = "MCPB_WINDOWS_APP_ALIAS_DIRS";
     private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan DiscoveryInitializationTimeout = TimeSpan.FromSeconds(15);
-    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> EmptyUserConfigOverrides =
-        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+    private static readonly IReadOnlyDictionary<
+        string,
+        IReadOnlyList<string>
+    > EmptyUserConfigOverrides = new Dictionary<string, IReadOnlyList<string>>(
+        StringComparer.Ordinal
+    );
     private static readonly Regex UserConfigTokenRegex = new(
         "\\$\\{user_config\\.([^}]+)\\}",
         RegexOptions.IgnoreCase | RegexOptions.Compiled
@@ -198,7 +203,7 @@ internal static class ManifestCommandHelpers
             return Path.Combine(baseDir, normalized.Replace('/', Path.DirectorySeparatorChar));
         }
 
-        void CheckFile(string? relativePath, string category)
+        void CheckFile(string? relativePath, string category, bool allowAliasResolution = false)
         {
             if (string.IsNullOrWhiteSpace(relativePath))
                 return;
@@ -209,7 +214,20 @@ internal static class ManifestCommandHelpers
             verboseLog?.Invoke($"Ensuring {category} file exists: {relativePath} -> {resolved}");
             if (!File.Exists(resolved))
             {
-                errors.Add($"Missing {category} file: {relativePath}");
+                var trimmed = relativePath.Trim();
+                if (
+                    allowAliasResolution
+                    && TryResolveWindowsAppExecutionAlias(trimmed, out var aliasPath)
+                )
+                {
+                    verboseLog?.Invoke(
+                        $"Resolved {category} '{trimmed}' via Windows app execution alias: {aliasPath}"
+                    );
+                }
+                else
+                {
+                    errors.Add($"Missing {category} file: {relativePath}");
+                }
             }
         }
 
@@ -221,7 +239,7 @@ internal static class ManifestCommandHelpers
         if (!string.IsNullOrWhiteSpace(manifest.Server.EntryPoint))
         {
             verboseLog?.Invoke($"Checking server entry point {manifest.Server.EntryPoint}");
-            CheckFile(manifest.Server.EntryPoint, "entry_point");
+            CheckFile(manifest.Server.EntryPoint, "entry_point", allowAliasResolution: true);
         }
 
         var command = manifest.Server.McpConfig?.Command;
@@ -229,15 +247,7 @@ internal static class ManifestCommandHelpers
         {
             var cmd = command!;
             verboseLog?.Invoke($"Resolving server command {cmd}");
-            bool pathLike =
-                cmd.Contains('/')
-                || cmd.Contains('\\')
-                || cmd.StartsWith("${__dirname}", StringComparison.OrdinalIgnoreCase)
-                || cmd.StartsWith("./")
-                || cmd.StartsWith("..")
-                || cmd.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
-                || cmd.EndsWith(".py", StringComparison.OrdinalIgnoreCase)
-                || cmd.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+            bool pathLike = IsCommandPathLike(cmd);
             if (pathLike)
             {
                 var expanded = ExpandToken(cmd, baseDir);
@@ -250,7 +260,16 @@ internal static class ManifestCommandHelpers
                 verboseLog?.Invoke($"Ensuring server command file exists: {resolved}");
                 if (!File.Exists(resolved))
                 {
-                    errors.Add($"Missing server.command file: {command}");
+                    if (TryResolveWindowsAppExecutionAlias(cmd, out var aliasPath))
+                    {
+                        verboseLog?.Invoke(
+                            $"Resolved server command '{cmd}' via Windows app execution alias: {aliasPath}"
+                        );
+                    }
+                    else
+                    {
+                        errors.Add($"Missing server.command file: {command}");
+                    }
                 }
             }
         }
@@ -307,6 +326,117 @@ internal static class ManifestCommandHelpers
         }
 
         return errors;
+    }
+
+    private static bool TryResolveWindowsAppExecutionAlias(
+        string? candidate,
+        out string resolvedPath
+    )
+    {
+        resolvedPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(candidate))
+            return false;
+
+        var trimmed = candidate.Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (
+            trimmed.IndexOf('/') >= 0
+            || trimmed.IndexOf('\\') >= 0
+            || !trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return false;
+        }
+
+        foreach (var directory in EnumerateWindowsAppAliasDirectories())
+        {
+            try
+            {
+                var path = Path.Combine(directory, trimmed);
+                if (File.Exists(path))
+                {
+                    resolvedPath = path;
+                    return true;
+                }
+            }
+            catch
+            {
+                // Ignore issues accessing alias directories
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string> EnumerateWindowsAppAliasDirectories()
+    {
+        var overrideValue = Environment.GetEnvironmentVariable(WindowsAppAliasDirectoriesEnvVar);
+        var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void Add(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+            try
+            {
+                var full = Path.GetFullPath(path);
+                if (!Directory.Exists(full))
+                    return;
+                full = full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (reported.Add(full))
+                {
+                    // nothing else to do
+                }
+            }
+            catch
+            {
+                // Ignore invalid directories
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(overrideValue))
+        {
+            var splits = overrideValue.Split(
+                Path.PathSeparator,
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            );
+            foreach (var part in splits)
+            {
+                Add(part);
+            }
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            var localAppData = Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData
+            );
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                Add(Path.Combine(localAppData, "Microsoft", "WindowsApps"));
+            }
+        }
+
+        foreach (var dir in reported)
+        {
+            yield return dir;
+        }
+    }
+
+    private static bool IsCommandPathLike(string command)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+            return false;
+        var trimmed = command.Trim();
+        return trimmed.Contains('/')
+            || trimmed.Contains('\\')
+            || trimmed.StartsWith("${__dirname}", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("./")
+            || trimmed.StartsWith("..")
+            || trimmed.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+            || trimmed.EndsWith(".py", StringComparison.OrdinalIgnoreCase)
+            || trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static List<string> ValidateLocalizationCompleteness(
@@ -595,6 +725,7 @@ internal static class ManifestCommandHelpers
         var providedUserConfig = userConfigOverrides ?? EmptyUserConfigOverrides;
         EnsureRequiredUserConfigProvided(manifest, command, rawArgs, providedUserConfig);
 
+        var originalCommand = command;
         command = ExpandToken(command, dir, providedUserConfig);
         var args = new List<string>();
         foreach (var rawArg in rawArgs)
@@ -610,6 +741,33 @@ internal static class ManifestCommandHelpers
         command = NormalizePathForPlatform(command);
         for (int i = 0; i < args.Count; i++)
             args[i] = NormalizePathForPlatform(args[i]);
+
+        if (IsCommandPathLike(originalCommand))
+        {
+            var resolved = command;
+            if (!Path.IsPathRooted(resolved))
+            {
+                resolved = Path.Combine(dir, resolved);
+            }
+
+            if (File.Exists(resolved))
+            {
+                command = resolved;
+            }
+            else if (TryResolveWindowsAppExecutionAlias(originalCommand, out var aliasPath))
+            {
+                logInfo?.Invoke(
+                    $"Resolved server command '{originalCommand}' via Windows app execution alias: {aliasPath}"
+                );
+                command = aliasPath;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Unable to locate server.mcp_config.command executable: {originalCommand}"
+                );
+            }
+        }
 
         Dictionary<string, string>? env = null;
         if (cfg.Env != null && cfg.Env.Count > 0)
