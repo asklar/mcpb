@@ -166,6 +166,10 @@ Before launching the server or writing the archive, `mcpb pack` now validates th
 
 If any of these files are missing, packing fails immediately with an error like `Missing icon file: icon.png`. This happens before dynamic capability discovery so you get fast feedback on manifest inaccuracies.
 
+On Windows, `.exe` entry points or path-like commands can be satisfied by [App Execution Aliases](https://learn.microsoft.com/windows/apps/desktop/modernize/desktop-to-uwp-extensions). When a referenced `.exe` is not present under your extension directory, the CLI automatically checks `%LOCALAPPDATA%\Microsoft\WindowsApps` (the folder where aliases surface). To point discovery/validation at custom alias locations—or to simulate aliases in CI—set `MCPB_WINDOWS_APP_ALIAS_DIRS` to a path-separated list of directories.
+
+When discovery launches your server it resolves the executable using the same logic, so an alias that passes validation is the exact binary that will be executed.
+
 Commands (e.g. `node`, `python`) that are not path-like are not validated—they are treated as executables resolved by the environment.
 
 Examples:
