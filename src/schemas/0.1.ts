@@ -45,26 +45,9 @@ export const McpbManifestCompatibilitySchema = z.strictObject({
     .optional(),
 });
 
-const JSONSchemaPropertySchema = z
-  .object({
-    type: z.union([z.string(), z.array(z.string())]),
-    description: z.string().optional(),
-    format: z.string().optional(),
-  })
-  .passthrough();
-
-const McpToolInputSchema = z
-  .object({
-    type: z.literal("object"),
-    properties: z.record(z.string(), JSONSchemaPropertySchema).optional(),
-    required: z.array(z.string()).optional(),
-  })
-  .passthrough();
-
 export const McpbManifestToolSchema = z.strictObject({
   name: z.string(),
   description: z.string().optional(),
-  inputSchema: McpToolInputSchema.optional(),
 });
 
 export const McpbManifestPromptSchema = z.strictObject({
