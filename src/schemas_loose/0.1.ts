@@ -47,12 +47,10 @@ export const McpbManifestCompatibilitySchema = z
   })
   .passthrough();
 
-export const McpbManifestToolSchema = z
-  .object({
-    name: z.string(),
-    description: z.string().optional(),
-  })
-  .passthrough();
+export const McpbManifestToolSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+});
 
 export const McpbManifestPromptSchema = z.object({
   name: z.string(),
