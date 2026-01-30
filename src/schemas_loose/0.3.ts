@@ -38,6 +38,73 @@ export const McpbManifestServerSchema = z.object({
   mcp_config: McpbManifestMcpConfigSchema,
 });
 
+// Microsoft Windows extension schemas for _meta validation
+const JSONSchemaPropertySchema = z
+  .object({
+    type: z.union([z.string(), z.array(z.string())]),
+    description: z.string().optional(),
+    format: z.string().optional(),
+    enum: z.array(z.string()).optional(),
+    items: z.any().optional(),
+    properties: z.record(z.string(), z.any()).optional(),
+    additionalProperties: z.any().optional(),
+    required: z.array(z.string()).optional(),
+    minItems: z.number().optional(),
+  })
+  .passthrough();
+
+const McpToolInputSchema = z
+  .object({
+    type: z.literal("object"),
+    properties: z.record(z.string(), JSONSchemaPropertySchema).optional(),
+    required: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const McpToolOutputSchema = z
+  .object({
+    type: z.literal("object"),
+    properties: z.record(z.string(), JSONSchemaPropertySchema).optional(),
+    required: z.array(z.string()).optional(),
+    additionalProperties: z.any().optional(),
+  })
+  .passthrough();
+
+const McpToolAnnotationsSchema = z
+  .object({
+    destructiveHint: z.boolean().optional(),
+    idempotentHint: z.boolean().optional(),
+    readOnlyHint: z.boolean().optional(),
+  })
+  .passthrough();
+
+const McpExtendedToolSchema = z
+  .object({
+    name: z.string(),
+    description: z.string().optional(),
+    inputSchema: McpToolInputSchema.optional(),
+    outputSchema: McpToolOutputSchema.optional(),
+    annotations: McpToolAnnotationsSchema.optional(),
+  })
+  .passthrough();
+
+const MicrosoftWindowsExtensionSchema = z
+  .object({
+    static_responses: z
+      .object({
+        initialize: z.any().optional(),
+        "tools/list": z
+          .object({
+            tools: z.array(McpExtendedToolSchema).optional(),
+          })
+          .passthrough()
+          .optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
 export const McpbManifestCompatibilitySchema = z
   .object({
     claude_desktop: z.string().optional(),
@@ -51,10 +118,12 @@ export const McpbManifestCompatibilitySchema = z
   })
   .passthrough();
 
-export const McpbManifestToolSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-});
+export const McpbManifestToolSchema = z
+  .object({
+    name: z.string(),
+    description: z.string().optional(),
+  })
+  .passthrough();
 
 export const McpbManifestPromptSchema = z.object({
   name: z.string(),
@@ -141,7 +210,12 @@ export const McpbManifestSchema = z
     user_config: z
       .record(z.string(), McpbUserConfigurationOptionSchema)
       .optional(),
-    _meta: z.record(z.string(), z.record(z.string(), z.any())).optional(),
+    _meta: z
+      .object({
+        "com.microsoft.windows": MicrosoftWindowsExtensionSchema.optional(),
+      })
+      .and(z.record(z.string(), z.record(z.string(), z.any())))
+      .optional(),
   })
   .passthrough()
   .refine((data) => !!(data.dxt_version || data.manifest_version), {
