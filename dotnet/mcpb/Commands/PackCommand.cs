@@ -161,11 +161,18 @@ public static class PackCommand
                     
                     staticResponses.Initialize = initDict;
                 }
+
                 if (discoveredToolsListResponse != null)
                 {
+                    if (!ToolsListComparer.AreEqual(staticResponses.ToolsList, discoveredToolsListResponse))
+                    {
+                        mismatchOccurred = true;
+                    }
+
                     // Store the entire tools/list response object as-is
                     staticResponses.ToolsList = discoveredToolsListResponse;
                 }
+                
                 windowsMeta.StaticResponses = staticResponses;
                 SetWindowsMeta(manifest, windowsMeta);
                 Console.WriteLine("Updated _meta static_responses to match discovered results.");
@@ -354,7 +361,7 @@ public static class PackCommand
         // Try to deserialize the dictionary to McpbWindowsMeta
         try
         {
-            var json = JsonSerializer.Serialize(windowsMetaDict);
+            var json = JsonSerializer.Serialize(windowsMetaDict, McpbJsonContext.WriteOptions);
             return JsonSerializer.Deserialize<McpbWindowsMeta>(json) ?? new McpbWindowsMeta();
         }
         catch
@@ -368,7 +375,7 @@ public static class PackCommand
         manifest.Meta ??= new Dictionary<string, Dictionary<string, object>>();
         
         // Serialize to dictionary
-        var json = JsonSerializer.Serialize(windowsMeta);
+        var json = JsonSerializer.Serialize(windowsMeta, McpbJsonContext.WriteOptions);
         var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
         
         manifest.Meta["com.microsoft.windows"] = dict;

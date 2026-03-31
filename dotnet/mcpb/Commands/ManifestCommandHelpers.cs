@@ -253,17 +253,12 @@ internal static class ManifestCommandHelpers
             // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
             {
-                var toolsList = new List<object>();
+                var toolsList = new List<Tool>();
                 foreach (var tool in tools)
                 {
-                    // Serialize the tool and parse to JsonElement
-                    var json = JsonSerializer.Serialize(tool.ProtocolTool);
-                    var element = JsonSerializer.Deserialize<JsonElement>(json);
-                    
-                    // Filter out null properties recursively
-                    var filtered = FilterNullProperties(element);
-                    toolsList.Add(filtered);
+                    toolsList.Add(tool.ProtocolTool);
                 }
+                
                 toolsListResponse = new McpbToolsListResult { Tools = toolsList };
             }
             catch (Exception ex)
