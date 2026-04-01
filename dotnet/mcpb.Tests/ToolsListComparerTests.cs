@@ -426,10 +426,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"""test""").RootElement;
         var json2 = JsonDocument.Parse(@"""test""").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.True(result);
-        Assert.Null(mismatchPath);
     }
 
     [Fact]
@@ -438,10 +437,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"""test1""").RootElement;
         var json2 = JsonDocument.Parse(@"""test2""").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal(string.Empty, mismatchPath);
     }
 
     [Fact]
@@ -450,10 +448,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"42").RootElement;
         var json2 = JsonDocument.Parse(@"42").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.True(result);
-        Assert.Null(mismatchPath);
     }
 
     [Fact]
@@ -462,10 +459,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"42").RootElement;
         var json2 = JsonDocument.Parse(@"43").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal(string.Empty, mismatchPath);
     }
 
     [Fact]
@@ -474,10 +470,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"true").RootElement;
         var json2 = JsonDocument.Parse(@"true").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.True(result);
-        Assert.Null(mismatchPath);
     }
 
     [Fact]
@@ -486,10 +481,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"null").RootElement;
         var json2 = JsonDocument.Parse(@"null").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.True(result);
-        Assert.Null(mismatchPath);
     }
 
     [Fact]
@@ -498,10 +492,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"""test""").RootElement;
         var json2 = JsonDocument.Parse(@"42").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal(string.Empty, mismatchPath);
     }
 
     [Fact]
@@ -510,10 +503,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"{""key"": ""value"", ""num"": 42}").RootElement;
         var json2 = JsonDocument.Parse(@"{""key"": ""value"", ""num"": 42}").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.True(result);
-        Assert.Null(mismatchPath);
     }
 
     [Fact]
@@ -522,10 +514,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"{""key"": ""value""}").RootElement;
         var json2 = JsonDocument.Parse(@"{""key"": ""value"", ""extra"": ""prop""}").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal(string.Empty, mismatchPath);
     }
 
     [Fact]
@@ -534,10 +525,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"{""key1"": ""value""}").RootElement;
         var json2 = JsonDocument.Parse(@"{""key2"": ""value""}").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal("key1", mismatchPath);
     }
 
     [Fact]
@@ -546,10 +536,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"{""outer"": {""inner"": ""value1""}}").RootElement;
         var json2 = JsonDocument.Parse(@"{""outer"": {""inner"": ""value2""}}").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal("outer.inner", mismatchPath);
     }
 
     [Fact]
@@ -558,10 +547,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"[1, 2, 3]").RootElement;
         var json2 = JsonDocument.Parse(@"[1, 2, 3]").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.True(result);
-        Assert.Null(mismatchPath);
     }
 
     [Fact]
@@ -570,10 +558,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"[1, 2]").RootElement;
         var json2 = JsonDocument.Parse(@"[1, 2, 3]").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal(string.Empty, mismatchPath);
     }
 
     [Fact]
@@ -582,10 +569,9 @@ public class ToolsListComparerTests
         var json1 = JsonDocument.Parse(@"[1, 2, 3]").RootElement;
         var json2 = JsonDocument.Parse(@"[1, 5, 3]").RootElement;
 
-        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2, out string? mismatchPath);
+        var result = ToolsListComparer.JsonElementDeepEquals(json1, json2);
 
         Assert.False(result);
-        Assert.Equal("[1]", mismatchPath);
     }
 
     [Fact]

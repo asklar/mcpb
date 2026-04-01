@@ -35,23 +35,37 @@ public static class ToolsListComparer
                 return false;
             }
 
+            // Key names must be unique, so we can build a dictionary for the server tools to speed up lookups.
+            // The dictionary contains a tuple of the Tool and a bool indicating whether it has been matched to
+            // a manifest tool, to detect duplicates.
+            Dictionary<string, (Tool Tool, bool IsMatched)> serverToolsByName = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (Tool serverTool in serverTools!)
+            {
+                if (serverToolsByName.ContainsKey(serverTool.Name))
+                {
+                    return false;
+                }
+                serverToolsByName[serverTool.Name] = (serverTool, false);
+            }
+
             foreach (Tool manifestTool in manifestTools)
             {
-                bool foundMatch = false;
-
-                foreach (Tool serverTool in serverTools!)
+                if (serverToolsByName.TryGetValue(manifestTool.Name, out var serverToolEntry))
                 {
-                    if (string.Equals(manifestTool.Name, serverTool.Name, StringComparison.OrdinalIgnoreCase))
+                    if (serverToolEntry.IsMatched)  // Much clearer than Item2
                     {
-                        if (CompareToolProperties(manifestTool, serverTool))
-                        {
-                            foundMatch = true;
-                            break;
-                        }
+                        return false;
                     }
-                }
 
-                if (!foundMatch)
+                    if (!CompareToolProperties(manifestTool, serverToolEntry.Tool))  // Clearer than Item1
+                    {
+                        return false;
+                    }
+                    
+                    serverToolsByName[manifestTool.Name] = (serverToolEntry.Tool, true);
+                }
+                else
                 {
                     return false;
                 }
@@ -209,32 +223,10 @@ public static class ToolsListComparer
 
                 return true;
 
-                // Compare numbers by value rather than by their raw JSON text to avoid
-                // treating numerically equivalent values with different formatting as mismatches.
-                if (element1.TryGetDecimal(out decimal decimal1) && element2.TryGetDecimal(out decimal decimal2))
+            case JsonValueKind.Number:
+                if (element1.GetRawText() != element2.GetRawText())
                 {
-                    if (decimal1 != decimal2)
-                    {
-                        mismatchPath = currentPath;
-                        return false;
-                    }
-                }
-                else if (element1.TryGetDouble(out double double1) && element2.TryGetDouble(out double double2))
-                {
-                    if (double1 != double2)
-                    {
-                        mismatchPath = currentPath;
-                        return false;
-                    }
-                }
-                else
-                {
-                    // Fallback to raw text comparison if numeric parsing is not possible.
-                    if (element1.GetRawText() != element2.GetRawText())
-                    {
-                        mismatchPath = currentPath;
-                        return false;
-                    }
+                    return false;
                 }
 
                 return true;
