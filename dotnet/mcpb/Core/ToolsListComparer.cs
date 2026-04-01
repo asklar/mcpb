@@ -65,8 +65,6 @@ public static class ToolsListComparer
         Tool manifestTool,
         Tool serverTool)
     {
-        string toolName = manifestTool.Name;
-
         // Compare description (optional — only check if static_response has one).
         if (manifestTool.Description is not null)
         {
@@ -103,7 +101,7 @@ public static class ToolsListComparer
         }
 
         if (manifestDefinesSchema &&
-            !JsonElementDeepEquals(manifestSchema!.Value, serverSchema!.Value, out string? mismatchPath))
+            !JsonElementDeepEquals(manifestSchema!.Value, serverSchema!.Value))
         {
             return false;
         }
@@ -118,16 +116,15 @@ public static class ToolsListComparer
     /// <param name="element2">The second element to compare.</param>
     /// <param name="mismatchPath">When the elements differ, the JSON path where the mismatch was found.</param>
     /// <returns><c>true</c> if the elements are deeply equal; otherwise, <c>false</c>.</returns>
-    internal static bool JsonElementDeepEquals(JsonElement element1, JsonElement element2, out string? mismatchPath)
+    internal static bool JsonElementDeepEquals(JsonElement element1, JsonElement element2)
     {
-        return JsonElementDeepEqualsCore(element1, element2, string.Empty, out mismatchPath);
+        return JsonElementDeepEqualsCore(element1, element2, string.Empty);
     }
 
-    private static bool JsonElementDeepEqualsCore(JsonElement element1, JsonElement element2, string currentPath, out string? mismatchPath)
+    private static bool JsonElementDeepEqualsCore(JsonElement element1, JsonElement element2, string currentPath)
     {
         if (element1.ValueKind != element2.ValueKind)
         {
-            mismatchPath = currentPath;
             return false;
         }
 
@@ -148,7 +145,6 @@ public static class ToolsListComparer
 
                 if (count1 != count2)
                 {
-                    mismatchPath = currentPath;
                     return false;
                 }
 
@@ -158,17 +154,15 @@ public static class ToolsListComparer
 
                     if (!element2.TryGetProperty(property1.Name, out JsonElement property2Value))
                     {
-                        mismatchPath = propertyPath;
                         return false;
                     }
 
-                    if (!JsonElementDeepEqualsCore(property1.Value, property2Value, propertyPath, out mismatchPath))
+                    if (!JsonElementDeepEqualsCore(property1.Value, property2Value, propertyPath))
                     {
                         return false;
                     }
                 }
 
-                mismatchPath = null;
                 return true;
 
             case JsonValueKind.Array:
@@ -186,7 +180,6 @@ public static class ToolsListComparer
 
                 if (arrayLength1 != arrayLength2)
                 {
-                    mismatchPath = currentPath;
                     return false;
                 }
 
@@ -197,7 +190,7 @@ public static class ToolsListComparer
                     while (enumerator1.MoveNext() && enumerator2.MoveNext())
                     {
                         string arrayPath = $"{currentPath}[{index}]";
-                        if (!JsonElementDeepEqualsCore(enumerator1.Current, enumerator2.Current, arrayPath, out mismatchPath))
+                        if (!JsonElementDeepEqualsCore(enumerator1.Current, enumerator2.Current, arrayPath))
                         {
                             return false;
                         }
@@ -206,37 +199,30 @@ public static class ToolsListComparer
                     }
                 }
 
-                mismatchPath = null;
                 return true;
 
             case JsonValueKind.String:
                 if (element1.GetString() != element2.GetString())
                 {
-                    mismatchPath = currentPath;
                     return false;
                 }
 
-                mismatchPath = null;
                 return true;
 
             case JsonValueKind.Number:
                 if (element1.GetRawText() != element2.GetRawText())
                 {
-                    mismatchPath = currentPath;
                     return false;
                 }
 
-                mismatchPath = null;
                 return true;
 
             case JsonValueKind.True:
             case JsonValueKind.False:
             case JsonValueKind.Null:
-                mismatchPath = null;
                 return true;
 
             default:
-                mismatchPath = currentPath;
                 return false;
         }
     }
