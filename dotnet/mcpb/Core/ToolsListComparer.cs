@@ -209,10 +209,32 @@ public static class ToolsListComparer
 
                 return true;
 
-            case JsonValueKind.Number:
-                if (element1.GetRawText() != element2.GetRawText())
+                // Compare numbers by value rather than by their raw JSON text to avoid
+                // treating numerically equivalent values with different formatting as mismatches.
+                if (element1.TryGetDecimal(out decimal decimal1) && element2.TryGetDecimal(out decimal decimal2))
                 {
-                    return false;
+                    if (decimal1 != decimal2)
+                    {
+                        mismatchPath = currentPath;
+                        return false;
+                    }
+                }
+                else if (element1.TryGetDouble(out double double1) && element2.TryGetDouble(out double double2))
+                {
+                    if (double1 != double2)
+                    {
+                        mismatchPath = currentPath;
+                        return false;
+                    }
+                }
+                else
+                {
+                    // Fallback to raw text comparison if numeric parsing is not possible.
+                    if (element1.GetRawText() != element2.GetRawText())
+                    {
+                        mismatchPath = currentPath;
+                        return false;
+                    }
                 }
 
                 return true;
