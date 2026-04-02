@@ -1,11 +1,9 @@
+using Mcpb.Core;
+using Mcpb.Json;
 using System.CommandLine;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
-using Mcpb.Core;
-using System.Text.Json;
-using Mcpb.Json;
-using System.Text.RegularExpressions;
 
 namespace Mcpb.Commands;
 
@@ -164,9 +162,13 @@ public static class PackCommand
 
                 if (discoveredToolsListResponse != null)
                 {
-                    if (!ToolsListComparer.AreEqual(staticResponses.ToolsList, discoveredToolsListResponse))
+                    string staticResponsesToolsListJson = JsonSerializer.Serialize(staticResponses.ToolsList, McpbJsonContext.WriteOptions);
+                    string discoveredToolsListJson = JsonSerializer.Serialize(discoveredToolsListResponse, McpbJsonContext.WriteOptions);
+
+                    if (!string.Equals(staticResponsesToolsListJson, discoveredToolsListJson, StringComparison.Ordinal))
                     {
                         mismatchOccurred = true;
+                        Console.WriteLine("Tol schema mismatch in _meta static_responses:");
                     }
 
                     // Store the entire tools/list response object as-is

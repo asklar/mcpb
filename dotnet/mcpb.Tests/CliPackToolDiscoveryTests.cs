@@ -3,6 +3,7 @@ using Mcpb.Json;
 using Xunit;
 using System.IO;
 using System.Linq;
+using Mcpb.Core;
 
 namespace Mcpb.Tests;
 
@@ -218,6 +219,275 @@ public class CliPackToolDiscoveryTests
         finally
         {
             Environment.SetEnvironmentVariable("MCPB_TOOL_DISCOVERY_JSON", null);
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolInputSchemaMismatch_OutputMentionsMismatch()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        manifest.Tools![0].Description = "Search tool";
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        // Manifest has no schema, but discovered tools/list has InputSchema
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON",
+            "{\"tools\": [{\"name\":\"search\",\"description\":\"Search tool\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Tool list mismatch", stdout + stderr);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolInputSchemaMismatch_UpdateAddsSchema()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", 
+            "{\"tools\": [ {\"name\":\"search\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"]}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Updated manifest.json capabilities", stdout + stderr);
+            
+            var jsonText = File.ReadAllText(manifestPath);
+            Assert.Contains("\"inputSchema\"", jsonText);
+            Assert.Contains("\"query\"", jsonText);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolOutputSchemaMismatch_OutputMentionsMismatch()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        manifest.Tools![0].Description = "Search tool";
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        // Manifest has no outputSchema, but discovered tools/list has OutputSchema
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON",
+            "{\"tools\": [{\"name\":\"search\",\"description\":\"Search tool\",\"outputSchema\":{\"type\":\"object\",\"properties\":{\"results\":{\"type\":\"array\"}}}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Tool list mismatch", stdout + stderr);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolOutputSchemaMismatch_UpdateAddsSchema()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", 
+            "{\"tools\": [{\"name\":\"search\",\"outputSchema\":{\"type\":\"object\",\"properties\":{\"results\":{\"type\":\"array\"}},\"required\":[\"results\"]}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Updated manifest.json capabilities", stdout + stderr);
+            
+            var jsonText = File.ReadAllText(manifestPath);
+            Assert.Contains("\"outputSchema\"", jsonText);
+            Assert.Contains("\"results\"", jsonText);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolInputAndOutputSchemaMismatch_UpdateAddsBothSchemas()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", 
+            "{\"tools\": [{\"name\":\"search\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"properties\":{\"results\":{\"type\":\"array\"}}}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Updated manifest.json capabilities", stdout + stderr);
+            
+            var jsonText = File.ReadAllText(manifestPath);
+            Assert.Contains("\"inputSchema\"", jsonText);
+            Assert.Contains("\"query\"", jsonText);
+            Assert.Contains("\"outputSchema\"", jsonText);
+            Assert.Contains("\"results\"", jsonText);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolDescriptionMismatch_UpdateRewritesDescription()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        manifest.Tools![0].Description = "Old description";
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", 
+            "{\"tools\": [{\"name\":\"search\",\"description\":\"New description\"}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Updated manifest.json capabilities", stdout + stderr);
+            
+            var jsonText = File.ReadAllText(manifestPath);
+            var updated = JsonSerializer.Deserialize<Mcpb.Core.McpbManifest>(
+                jsonText, 
+                McpbJsonContext.Default.McpbManifest)!;
+            
+            Assert.NotNull(updated.Meta);
+            Assert.True(updated.Meta.TryGetValue("com.microsoft.windows", out var windowsMeta));
+            Assert.True(windowsMeta.TryGetValue("static_responses", out object? staticResponsesValue));
+
+            JsonElement staticResponseElement = (JsonElement)staticResponsesValue;
+            var staticResponsesData = staticResponseElement.Deserialize(McpbJsonContext.Default.McpbStaticResponses);
+            
+            Assert.NotNull(staticResponsesData);
+            var toolsList = staticResponsesData.ToolsList;
+            Assert.NotNull(toolsList);
+            Assert.NotNull(toolsList.Tools);
+            var searchTool = toolsList.Tools.Single(t => t.Name == "search");
+            Assert.Equal("New description", searchTool.Description);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ToolCompleteMetadataMismatch_UpdateSyncsAllProperties()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        manifest.Tools![0].Description = "Old description";
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions));
+        
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", 
+            "{\"tools\": [{\"name\":\"search\",\"description\":\"New description\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"properties\":{\"results\":{\"type\":\"array\"}}}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Updated manifest.json capabilities", stdout + stderr);
+            
+            var jsonText = File.ReadAllText(manifestPath);
+            var updated = JsonSerializer.Deserialize<Mcpb.Core.McpbManifest>(
+                jsonText, 
+                McpbJsonContext.Default.McpbManifest)!;
+
+            Assert.NotNull(updated.Meta);
+            Assert.True(updated.Meta.TryGetValue("com.microsoft.windows", out var windowsMeta));
+            Assert.True(windowsMeta.TryGetValue("static_responses", out object? staticResponsesValue));
+
+            JsonElement staticResponseElement = (JsonElement)staticResponsesValue;
+
+            var staticResponsesData = staticResponseElement.Deserialize(McpbJsonContext.Default.McpbStaticResponses);
+            
+            Assert.NotNull(staticResponsesData);
+            var toolsList = staticResponsesData.ToolsList;
+
+            Assert.NotNull(toolsList);
+            Assert.NotNull(toolsList.Tools);
+            var searchTool = toolsList.Tools.Single(t => t.Name == "search");
+            Assert.Equal("New description", searchTool.Description);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
+        }
+    }
+
+    [Fact]
+    public void Pack_ExistingSchemaMismatch_UpdateReplacesSchema()
+    {
+        var dir = CreateTempDir();
+        var manifestPath = Path.Combine(dir, "manifest.json");
+        Directory.CreateDirectory(Path.Combine(dir, "server"));
+        File.WriteAllText(Path.Combine(dir, "server", "demo"), "binary");
+        
+        var manifest = MakeManifest(new[] { "search" });
+        // Manually add an old schema (simulating what would be in manifest)
+        var manifestJson = JsonSerializer.Serialize(manifest, McpbJsonContext.WriteOptions);
+        var manifestWithSchema = manifestJson.Replace(
+            "\"tools\": [{\"name\":\"search\"}]", 
+            "\"tools\": [{\"name\":\"search\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"oldProp\":{\"type\":\"string\"}}}}]");
+        File.WriteAllText(manifestPath, manifestWithSchema);
+        
+        Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", 
+            "{\"tools\": [{\"name\":\"search\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"newProp\":{\"type\":\"number\"}}}}]}");
+        try
+        {
+            var (code, stdout, stderr) = InvokeCli(dir, "pack", dir, "--update");
+            Assert.Equal(0, code);
+            Assert.Contains("Updated manifest.json capabilities", stdout + stderr);
+            
+            var jsonText = File.ReadAllText(manifestPath);
+            Assert.Contains("\"newProp\"", jsonText);
+            Assert.DoesNotContain("\"oldProp\"", jsonText);
+        }
+        finally 
+        { 
+            Environment.SetEnvironmentVariable("MCPB_TOOLS_LIST_DISCOVERY_JSON", null); 
         }
     }
 }

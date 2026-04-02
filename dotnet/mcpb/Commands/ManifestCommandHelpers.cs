@@ -158,13 +158,14 @@ internal static class ManifestCommandHelpers
     {
         var overrideTools = TryParseToolOverride("MCPB_TOOL_DISCOVERY_JSON");
         var overridePrompts = TryParsePromptOverride("MCPB_PROMPT_DISCOVERY_JSON");
-        if (overrideTools != null || overridePrompts != null)
+        var overrideToolsList = TryParseToolsListOverride("MCPB_TOOLS_LIST_DISCOVERY_JSON");
+        if (overrideTools != null || overridePrompts != null || overrideToolsList != null)
         {
             return new CapabilityDiscoveryResult(
                 overrideTools ?? new List<McpbManifestTool>(),
                 overridePrompts ?? new List<McpbManifestPrompt>(),
                 null,
-                null);
+                overrideToolsList ?? new McpbToolsListResult());
         }
 
         var cfg = manifest.Server?.McpConfig ?? throw new InvalidOperationException("Manifest server.mcp_config missing");
@@ -469,6 +470,24 @@ internal static class ManifestCommandHelpers
             }
 
             return list.Count == 0 ? null : DeduplicatePrompts(list);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static McpbToolsListResult? TryParseToolsListOverride(string envVar)
+    {
+        var json = Environment.GetEnvironmentVariable(envVar);
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            McpbToolsListResult? toolsListResult = JsonSerializer.Deserialize(
+                json, 
+                McpbJsonContext.Default.McpbToolsListResult);
+
+            return toolsListResult;
         }
         catch
         {
