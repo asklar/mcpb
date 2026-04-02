@@ -158,13 +158,14 @@ internal static class ManifestCommandHelpers
     {
         var overrideTools = TryParseToolOverride("MCPB_TOOL_DISCOVERY_JSON");
         var overridePrompts = TryParsePromptOverride("MCPB_PROMPT_DISCOVERY_JSON");
-        if (overrideTools != null || overridePrompts != null)
+        var overrideToolsList = TryParseToolsListOverride("MCPB_TOOLS_LIST_DISCOVERY_JSON");
+        if (overrideTools != null || overridePrompts != null || overrideToolsList != null)
         {
             return new CapabilityDiscoveryResult(
                 overrideTools ?? new List<McpbManifestTool>(),
                 overridePrompts ?? new List<McpbManifestPrompt>(),
                 null,
-                null);
+                overrideToolsList ?? new McpbToolsListResult());
         }
 
         var cfg = manifest.Server?.McpConfig ?? throw new InvalidOperationException("Manifest server.mcp_config missing");
@@ -253,17 +254,12 @@ internal static class ManifestCommandHelpers
             // Filter out null properties to match JsonIgnoreCondition.WhenWritingNull behavior
             try
             {
-                var toolsList = new List<object>();
+                var toolsList = new List<Tool>();
                 foreach (var tool in tools)
                 {
-                    // Serialize the tool and parse to JsonElement
-                    var json = JsonSerializer.Serialize(tool.ProtocolTool);
-                    var element = JsonSerializer.Deserialize<JsonElement>(json);
-                    
-                    // Filter out null properties recursively
-                    var filtered = FilterNullProperties(element);
-                    toolsList.Add(filtered);
+                    toolsList.Add(tool.ProtocolTool);
                 }
+                
                 toolsListResponse = new McpbToolsListResult { Tools = toolsList };
             }
             catch (Exception ex)
@@ -474,6 +470,24 @@ internal static class ManifestCommandHelpers
             }
 
             return list.Count == 0 ? null : DeduplicatePrompts(list);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static McpbToolsListResult? TryParseToolsListOverride(string envVar)
+    {
+        var json = Environment.GetEnvironmentVariable(envVar);
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            McpbToolsListResult? toolsListResult = JsonSerializer.Deserialize(
+                json, 
+                McpbJsonContext.Default.McpbToolsListResult);
+
+            return toolsListResult;
         }
         catch
         {

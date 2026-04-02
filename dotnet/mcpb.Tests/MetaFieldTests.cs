@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Mcpb.Core;
 using Mcpb.Json;
+using ModelContextProtocol.Protocol;
 using Xunit;
 
 namespace Mcpb.Tests;
@@ -168,31 +169,31 @@ public class MetaFieldTests
 
         var toolsListResult = new McpbToolsListResult
         {
-            Tools = new List<object>
+            Tools = new List<Tool>
             {
-                new
+                new Tool
                 {
-                    name = "search_tool",
-                    description = "A search tool",
-                    inputSchema = new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            query = new { type = "string", description = "Search query" },
-                            maxResults = new { type = "number", description = "Max results" }
-                        },
-                        required = new[] { "query" }
-                    },
-                    outputSchema = new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            results = new { type = "array" },
-                            count = new { type = "number" }
-                        }
-                    }
+                    Name = "search_tool",
+                    Description = "A search tool",
+                    InputSchema = JsonDocument.Parse("""
+    {
+        "type": "object",
+        "properties": {
+            "query": { "type": "string", "description": "Search query" },
+            "maxResults": { "type": "number", "description": "Max results" }
+        },
+        "required": ["query"]
+    }
+    """).RootElement,
+OutputSchema = JsonDocument.Parse("""
+    {
+        "type": "object",
+        "properties": {
+            "results": { "type": "array" },
+            "count": { "type": "number" }
+        }
+    }
+    """).RootElement
                 }
             }
         };

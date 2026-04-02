@@ -1,10 +1,6 @@
-using System.CommandLine;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
 using Mcpb.Core;
 using Mcpb.Json;
+using System.CommandLine;
 
 namespace Mcpb.Commands;
 
@@ -173,6 +169,20 @@ public static class ValidateCommand
                     {
                         Console.Error.WriteLine($"WARNING: {warning}");
                     }
+
+                    // Check and optionally update _meta static_responses
+                    if (StaticResponsesHelper.CheckAndUpdate(
+                        manifest, 
+                        discovery.InitializeResponse, 
+                        discovery.ToolsListResponse,
+                        update, 
+                        out var checkMessage))
+                    {
+                        mismatchOccurred = true;
+                        Console.WriteLine(checkMessage);
+                    }
+                    if (update && (discovery.InitializeResponse != null || discovery.ToolsListResponse != null))
+                        Console.WriteLine("Updated _meta static_responses to match discovered results.");
 
                     if (mismatchOccurred)
                     {

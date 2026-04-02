@@ -1,3 +1,4 @@
+using ModelContextProtocol.Protocol;
 using System.Text.Json.Serialization;
 
 namespace Mcpb.Core;
@@ -84,7 +85,7 @@ public class McpbInitializeResult
 
 public class McpbToolsListResult
 {
-    [JsonPropertyName("tools")] public List<object>? Tools { get; set; }
+    [JsonPropertyName("tools")] public List<Tool>? Tools { get; set; }
 }
 
 public class McpbStaticResponses
